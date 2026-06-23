@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acceso Administrador · Tutor Académico</title>
+<style>
+  :root {
+    --bg-grad-a: #232526;
+    --bg-grad-b: #c79a3c;
+    --card-bg: #ffffff;
+    --card-text: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --input-bg: #f5f6fa;
+    --accent: #b8860b;
+    --accent-hover: #966c08;
+  }
+  [data-theme="light"] {
+    --bg-grad-a: #4b4b4b;
+    --bg-grad-b: #e9d8a6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, var(--bg-grad-a), var(--bg-grad-b));
+    background-size: 200% 200%;
+    animation: gradientShift 12s ease infinite;
+    padding: 20px;
+  }
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  #theme-toggle {
+    position: fixed; top: 16px; right: 16px;
+    padding: 8px 14px; border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.6);
+    background-color: rgba(255,255,255,0.2);
+    color: #fff; cursor: pointer; font-size: 14px;
+    backdrop-filter: blur(6px); z-index: 999;
+  }
+  .back-link {
+    position: fixed; top: 16px; left: 16px;
+    color: #fff; text-decoration: none; font-size: 14px;
+    background: rgba(255,255,255,0.2);
+    padding: 8px 14px; border-radius: 20px;
+    backdrop-filter: blur(6px);
+  }
+  .card {
+    background: var(--card-bg);
+    color: var(--card-text);
+    width: 100%;
+    max-width: 400px;
+    border-radius: 24px;
+    padding: 40px 36px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    text-align: center;
+  }
+  .card .icon { font-size: 42px; margin-bottom: 8px; }
+  .card h1 { font-size: 22px; margin: 0 0 4px; }
+  .card p.subtitle { color: var(--muted); font-size: 14px; margin: 0 0 28px; }
+  .field { text-align: left; margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+  .field input {
+    width: 100%; padding: 13px 16px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--input-bg);
+    color: var(--card-text); font-size: 15px;
+  }
+  .field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button.submit-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 999px;
+    background: linear-gradient(135deg, var(--bg-grad-a), var(--bg-grad-b));
+    color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+    margin-top: 8px; transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  button.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .alt-link { margin-top: 22px; font-size: 14px; color: var(--muted); }
+  .alt-link a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .error-box {
+    display: none; background: #fde8e8; color: #b91c1c;
+    border-radius: 10px; padding: 10px 14px; font-size: 13px;
+    margin-bottom: 16px; text-align: left;
+  }
+  .error-box.show { display: block; }
+  .pw-field { position: relative; }
+  .pw-field input { padding-right: 44px; }
+  .pw-toggle {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; font-size: 17px; padding: 6px; line-height: 1;
+  }
+</style>
+</head>
+<body>
+  <a class="back-link" href="/presenta.html">← Inicio</a>
+  <button id="theme-toggle" onclick="toggleTheme()">☀️ Claro</button>
+
+  <div class="card">
+    <div class="icon">🛡️</div>
+    <h1>Acceso de Administrador</h1>
+    <p class="subtitle">Gestiona profesores, alumnos y sus relaciones</p>
+
+    <div id="error-box" class="error-box"></div>
+
+    <form id="login-form">
+      <div class="field">
+        <label for="usuario">Usuario</label>
+        <input type="text" id="usuario" name="usuario" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="contrasena">Contraseña</label>
+        <div class="pw-field">
+          <input type="password" id="contrasena" name="contrasena" autocomplete="current-password" required>
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('contrasena', this)">👁️</button>
+        </div>
+      </div>
+      <button type="submit" class="submit-btn">Iniciar sesión</button>
+    </form>
+  </div>
+
+  <script>
+    (function () {
+      const saved = localStorage.getItem('botTheme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('botTheme', next);
+      document.getElementById('theme-toggle').textContent = next === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    });
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁️';
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorBox = document.getElementById('error-box');
+      errorBox.classList.remove('show');
+      const usuario = document.getElementById('usuario').value.trim();
+      const contrasena = document.getElementById('contrasena').value;
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuario, contrasena })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errorBox.textContent = data.error || 'No se pudo iniciar sesión.';
+          errorBox.classList.add('show');
+          return;
+        }
+        window.location.href = '/admin-dashboard.html';
+      } catch (err) {
+        errorBox.textContent = 'Error de conexión. Intenta de nuevo.';
+        errorBox.classList.add('show');
+      }
+    });
+  </script>
+</body>
+</html>

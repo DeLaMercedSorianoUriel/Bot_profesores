@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ingreso de Datos</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --text: #ffffff;
+      --surface: #2c2c2c;
+      --border: #555;
+      --btn-bg: #333;
+      --btn-hover: #555;
+    }
+    [data-theme="light"] {
+      --bg: #f4f4f6;
+      --text: #1a1a1a;
+      --surface: #ffffff;
+      --border: #ccc;
+      --btn-bg: #667eea;
+      --btn-hover: #5568d3;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    #theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 999;
+    }
+
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 90%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    input {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      color: var(--text);
+      width: 100%;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: var(--btn-bg);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: var(--btn-hover);
+    }
+    .error-message {
+      color: #ff4444;
+      font-size: 14px;
+      margin-top: 10px;
+      display: none;
+    }
+    .error-message.show {
+      display: block;
+    }
+    input.error {
+      border: 2px solid #ff4444;
+    }
+  </style>
+</head>
+<body>
+  <button id="theme-toggle" onclick="toggleTheme()">☀️ Claro</button>
+  <h1>Tutor_Académico Ingreso de Datos</h1>
+  <div class="input-container">
+    <h2>Proporciona los datos solicitados</h2>
+    <p>Ingresa la información requerida por el profesor para configurar tu chat.</p>
+    <div id="dynamic-fields"></div>
+    <div id="error-message" class="error-message">Por favor, completa todos los campos antes de continuar.</div>
+    <button onclick="submitData()">Continuar</button>
+  </div>
+
+  <script>
+    // Modo oscuro/claro persistente entre páginas
+    (function () {
+      const saved = localStorage.getItem('botTheme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('botTheme', next);
+      document.getElementById('theme-toggle').textContent = next === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    });
+
+    // Obtener criterios dinámicamente desde el servidor
+    fetch('/get-naming-criteria')
+      .then(response => response.json())
+      .then(criteria => {
+        const fieldsContainer = document.getElementById('dynamic-fields');
+        if (criteria.length === 0) {
+          fieldsContainer.innerHTML = '<p>No se han configurado criterios. Contacta al profesor.</p>';
+          return;
+        }
+        criteria.forEach(field => {
+          const label = document.createElement('label');
+          label.innerHTML = `${field.charAt(0).toUpperCase() + field.slice(1)}: <input type="text" name="${field}" required>`;
+          fieldsContainer.appendChild(label);
+          fieldsContainer.appendChild(document.createElement('br'));
+        });
+      })
+      .catch(error => {
+        console.error('Error al obtener criterios:', error);
+        document.getElementById('dynamic-fields').innerHTML = '<p>Error al cargar los criterios. Intenta de nuevo.</p>';
+      });
+
+    function submitData() {
+      const inputs = document.querySelectorAll('#dynamic-fields input');
+      const errorMessage = document.getElementById('error-message');
+      const data = {};
+      let hasEmptyFields = false;
+
+      // Validar que todos los campos estén llenos
+      inputs.forEach(input => {
+        // Remover clase de error previa
+        input.classList.remove('error');
+        
+        const value = input.value.trim();
+        if (!value || value === '') {
+          hasEmptyFields = true;
+          input.classList.add('error');
+        }
+        data[input.name] = value.replace(/\s+/g, '');
+      });
+
+      // Si hay campos vacíos, mostrar mensaje de error y detener el envío
+      if (hasEmptyFields) {
+        errorMessage.classList.add('show');
+        // Hacer scroll al mensaje de error
+        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // Ocultar mensaje de error si todo está correcto
+      errorMessage.classList.remove('show');
+
+      // Enviar datos al servidor
+      fetch('/submit-student-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.text())
+      .then(() => window.location.href = '/')
+      .catch(error => {
+        console.error('Error:', error);
+        errorMessage.textContent = 'Error al enviar los datos. Por favor, intenta de nuevo.';
+        errorMessage.classList.add('show');
+      });
+    }
+  </script>
+</body>
+</html>

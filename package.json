@@ -1,0 +1,31 @@
+{
+  "name": "project-root",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@langchain/core": "^0.3.79",
+    "@langchain/google-genai": "^0.1.0",
+    "@langchain/openai": "^0.6.16",
+    "bcrypt": "^6.0.0",
+    "body-parser": "^2.2.0",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "langchain": "^0.3.0",
+    "node-fetch": "^2.7.0",
+    "p-queue": "^6.6.2",
+    "pg": "^8.21.0",
+    "uuid": "^11.1.0"
+  },
+  "allowScripts": {
+    "bcrypt@6.0.0": true
+  }
+}

@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel del Profesor · Tutor Académico</title>
+<style>
+  :root {
+    --bg: #f4f5f9;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --surface: #ffffff;
+    --border: #e5e7eb;
+    --input-bg: #f5f6fa;
+    --accent-a: #6a11cb;
+    --accent-b: #2575fc;
+    --danger: #b91c1c;
+    --success: #0d7d3c;
+  }
+  [data-theme="dark"] {
+    --bg: #14151c;
+    --text: #f1f1f4;
+    --muted: #9aa0ad;
+    --surface: #1f2128;
+    --border: #30323c;
+    --input-bg: #282a33;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  .topbar {
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    color: #fff;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .topbar .who { font-size: 13px; opacity: 0.85; }
+  .topbar .actions { display: flex; align-items: center; gap: 10px; }
+  .topbar button {
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+  .section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-title h2 { font-size: 20px; margin: 0; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    color: #fff; border: none; padding: 10px 18px; border-radius: 999px;
+    cursor: pointer; font-size: 14px; font-weight: 600;
+  }
+  .btn-secondary {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    padding: 9px 16px; border-radius: 999px; cursor: pointer; font-size: 14px;
+  }
+  .btn-danger {
+    background: #fde8e8; color: var(--danger); border: 1px solid #f3c5c5;
+    padding: 9px 16px; border-radius: 999px; cursor: pointer; font-size: 14px;
+  }
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 18px;
+  }
+  .class-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .class-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.12); }
+  .class-card h3 { margin: 0 0 6px; font-size: 17px; }
+  .class-card .meta { color: var(--muted); font-size: 13px; }
+  .empty-state { color: var(--muted); padding: 30px; text-align: center; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    align-items: center; justify-content: center;
+    z-index: 1000; padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface); color: var(--text);
+    border-radius: 20px; padding: 28px; width: 100%; max-width: 480px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 { margin-top: 0; }
+  .field { margin-bottom: 14px; text-align: left; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+  .field input, .field textarea, .field select {
+    width: 100%; padding: 11px 13px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 14px;
+    font-family: inherit;
+  }
+  .field textarea { min-height: 90px; resize: vertical; }
+  .row-2 { display: flex; gap: 10px; }
+  .row-2 .field { flex: 1; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+  .password-rules { background: var(--input-bg); border-radius: 10px; padding: 10px 12px; margin: -4px 0 14px; font-size: 12.5px; }
+  .password-rules .rule { display: flex; gap: 8px; padding: 2px 0; color: var(--muted); }
+  .password-rules .rule.ok { color: var(--success); font-weight: 600; }
+
+  .pw-field { position: relative; }
+  .pw-field input { padding-right: 44px; }
+  .pw-toggle {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; font-size: 17px; padding: 6px; line-height: 1;
+  }
+
+  /* Detalle de clase */
+  #detail-view { display: none; }
+  .back-btn { background: none; border: none; color: var(--accent-b); cursor: pointer; font-size: 14px; margin-bottom: 16px; padding: 0; }
+  .detail-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tab-btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: 13px;
+  }
+  .tab-btn.active { background: linear-gradient(135deg, var(--accent-a), var(--accent-b)); color: #fff; border-color: transparent; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .card-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; }
+  td input[type="number"] { width: 70px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); }
+
+  .msg-box { display: none; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; }
+  .msg-box.error { background: #fde8e8; color: var(--danger); }
+  .msg-box.success { background: #e6f9ed; color: var(--success); }
+  .msg-box.show { display: block; }
+
+  #theme-toggle-form-btn { display: none; }
+
+  /* Campos de nombrado (chips seleccionables) */
+  .chips-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .chip-field {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--input-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 14px; cursor: pointer; font-size: 14px; user-select: none;
+  }
+  .chip-field.selected { border-color: var(--accent-b); background: rgba(37, 117, 252, 0.12); }
+  .chip-field .order-badge {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--accent-b); color: #fff;
+    font-size: 12px; font-weight: 700; display: none; align-items: center; justify-content: center;
+  }
+  .chip-field.selected .order-badge { display: flex; }
+  .naming-preview { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .naming-preview b { color: var(--text); }
+
+  /* Lista de entregas */
+  .entrega-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 14px; margin-bottom: 8px; font-size: 13.5px;
+  }
+  .entrega-row .meta { color: var(--muted); font-size: 12px; }
+
+  /* Visor de transcripción: bot en azul, alumno en rojo fuerte */
+  .transcript { display: flex; flex-direction: column; gap: 12px; }
+  .turno { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+  .turno.bot { align-self: flex-start; background: #2563eb; color: #fff; border-bottom-left-radius: 4px; }
+  .turno.alumno { align-self: flex-end; background: #dc2626; color: #fff; border-bottom-right-radius: 4px; }
+  .turno .turno-tag { display: block; font-size: 11px; font-weight: 700; opacity: 0.85; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* Estado de las actividades */
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+  .pill-habilitada { background: #e6f9ed; color: var(--success); }
+  .pill-pausada { background: #fdf3e0; color: #92600a; }
+  .pill-eliminada { background: #fde8e8; color: var(--danger); }
+</style>
+</head>
+<body data-theme="dark">
+  <div class="topbar">
+    <h1>📚 Panel del Profesor</h1>
+    <div class="actions">
+      <span class="who" id="profesor-nombre"></span>
+      <button onclick="abrirAnalizadorPasswordModal()">🔐 Analizador</button>
+      <button onclick="toggleTheme()" id="theme-toggle">☀️ Claro</button>
+      <button onclick="logout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Vista de lista de clases -->
+    <div id="list-view">
+      <div class="section-title">
+        <h2>Tus clases</h2>
+        <button class="btn-primary" onclick="openNewClassModal()">+ Nueva clase</button>
+      </div>
+      <div id="cards-container" class="cards-grid"></div>
+    </div>
+
+    <!-- Vista de detalle de una clase -->
+    <div id="detail-view">
+      <button class="back-btn" onclick="showListView()">← Volver a tus clases</button>
+      <div class="detail-header">
+        <h2 id="detail-clase-nombre"></h2>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="prompt" onclick="switchTab('prompt')">Clase</button>
+        <button class="tab-btn" data-tab="alumnos" onclick="switchTab('alumnos')">Alumnos</button>
+        <button class="tab-btn" data-tab="entregables" onclick="switchTab('entregables')">Actividades</button>
+        <button class="tab-btn" data-tab="calificaciones" onclick="switchTab('calificaciones')">Calificaciones</button>
+      </div>
+
+      <div id="msg-box" class="msg-box"></div>
+
+      <div class="tab-panel active" data-tab="prompt">
+        <div class="card-box">
+          <div class="field">
+            <label>Nombre de la clase</label>
+            <input type="text" id="clase-nombre-input">
+          </div>
+          <p style="font-size:13px;color:var(--muted);margin-top:-8px;">
+            El prompt del examen ya no es único por clase: cada actividad de la pestaña
+            "Actividades" tiene su propio prompt, que puedes editar de forma independiente.
+          </p>
+          <button class="btn-primary" onclick="guardarClase()">Guardar cambios</button>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab="alumnos">
+        <div class="card-box">
+          <div class="section-title">
+            <h3 style="margin:0;font-size:15px;">Alumnos inscritos</h3>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-secondary" onclick="openEnrollModal()">Matricular existente</button>
+              <button class="btn-primary" onclick="openNewStudentModal()">+ Nuevo alumno</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Nombre</th><th>No. cuenta</th><th>Usuario</th><th></th></tr></thead>
+            <tbody id="alumnos-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab="entregables">
+        <div class="card-box">
+          <div class="section-title">
+            <h3 style="margin:0;font-size:15px;">Actividades</h3>
+            <button class="btn-primary" onclick="openNewEntregableModal()">+ Nueva actividad</button>
+          </div>
+          <p style="font-size:13px;color:var(--muted);margin-top:-8px;">
+            Cada actividad es un examen o tarea independiente, con su propio prompt para el bot.
+            Solo las actividades <b>habilitadas</b> aparecen disponibles para tus alumnos.
+          </p>
+          <table>
+            <thead><tr><th>Nombre</th><th>Descripción</th><th>Fecha límite</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="entregables-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab="calificaciones">
+        <div class="card-box">
+          <h3 style="margin-top:0;font-size:15px;">Calificaciones</h3>
+          <table>
+            <thead><tr><th>Alumno</th><th>Entregable</th><th>Calificación</th><th>Origen</th><th></th></tr></thead>
+            <tbody id="calificaciones-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: nueva clase -->
+  <div class="modal-overlay" id="modal-new-class">
+    <div class="modal">
+      <h3>Nueva clase</h3>
+      <div class="field"><label>Nombre de la clase</label><input type="text" id="new-class-nombre"></div>
+      <div class="field"><label>Prompt del examen (puedes editarlo después)</label><textarea id="new-class-prompt"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-new-class')">Cancelar</button>
+        <button class="btn-primary" onclick="crearClase()">Crear clase</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: contraseña del analizador (la define el profesor, nunca el alumno) -->
+  <div class="modal-overlay" id="modal-analyzer-password">
+    <div class="modal">
+      <h3>Contraseña del analizador</h3>
+      <p style="font-size:13px;color:var(--muted);margin-top:-8px;">
+        Esta contraseña es distinta a la de tu inicio de sesión. Tus alumnos deberán escribirla en su chat
+        cada vez que necesiten solicitar ayuda del analizador. Solo tú puedes definirla o cambiarla.
+      </p>
+      <p id="analyzer-pw-estado" style="font-size:13px;font-weight:600;"></p>
+      <div class="field"><label>Nueva contraseña del analizador *</label>
+        <div class="pw-field">
+          <input type="password" id="ap-contrasena" placeholder="Mínimo 4 caracteres">
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('ap-contrasena', this)">👁️</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-analyzer-password')">Cancelar</button>
+        <button class="btn-primary" onclick="guardarAnalizadorPassword()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: nuevo alumno -->
+  <div class="modal-overlay" id="modal-new-student">
+    <div class="modal">
+      <h3>Registrar nuevo alumno</h3>
+      <div class="field"><label>Nombre *</label><input type="text" id="ns-nombre"></div>
+      <div class="row-2">
+        <div class="field"><label>Apellido paterno *</label><input type="text" id="ns-apellido-paterno"></div>
+        <div class="field"><label>Apellido materno</label><input type="text" id="ns-apellido-materno"></div>
+      </div>
+      <div class="field"><label>Número de cuenta *</label><input type="text" id="ns-numero-cuenta"></div>
+      <div class="row-2">
+        <div class="field"><label>Año nac. *</label><input type="number" id="ns-anio"></div>
+        <div class="field"><label>Mes *</label><input type="number" id="ns-mes" min="1" max="12"></div>
+        <div class="field"><label>Día *</label><input type="number" id="ns-dia" min="1" max="31"></div>
+      </div>
+      <div class="field"><label>Usuario *</label><input type="text" id="ns-usuario"></div>
+      <div class="field"><label>Contraseña *</label>
+        <div class="pw-field">
+          <input type="password" id="ns-contrasena">
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('ns-contrasena', this)">👁️</button>
+        </div>
+      </div>
+      <div class="password-rules" id="ns-password-rules">
+        <div class="rule" data-rule="length"><span class="mark">○</span> Al menos 8 caracteres</div>
+        <div class="rule" data-rule="upper"><span class="mark">○</span> Al menos una mayúscula</div>
+        <div class="rule" data-rule="lower"><span class="mark">○</span> Al menos una minúscula</div>
+        <div class="rule" data-rule="number"><span class="mark">○</span> Al menos un número</div>
+        <div class="rule" data-rule="symbol"><span class="mark">○</span> Al menos un símbolo</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-new-student')">Cancelar</button>
+        <button class="btn-primary" onclick="crearAlumno()">Registrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: restablecer contraseña de un alumno que la olvidó -->
+  <div class="modal-overlay" id="modal-reset-password">
+    <div class="modal">
+      <h3>Restablecer contraseña</h3>
+      <p style="font-size:13px;color:var(--muted);margin-top:-8px;">Nueva contraseña para <b id="reset-pw-usuario"></b>.</p>
+      <div class="field"><label>Nueva contraseña *</label>
+        <div class="pw-field">
+          <input type="password" id="reset-pw-nueva">
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('reset-pw-nueva', this)">👁️</button>
+        </div>
+      </div>
+      <div class="password-rules" id="reset-pw-rules">
+        <div class="rule" data-rule="length"><span class="mark">○</span> Al menos 8 caracteres</div>
+        <div class="rule" data-rule="upper"><span class="mark">○</span> Al menos una mayúscula</div>
+        <div class="rule" data-rule="lower"><span class="mark">○</span> Al menos una minúscula</div>
+        <div class="rule" data-rule="number"><span class="mark">○</span> Al menos un número</div>
+        <div class="rule" data-rule="symbol"><span class="mark">○</span> Al menos un símbolo</div>
+      </div>
+      <div class="field"><label>Confirmar contraseña *</label>
+        <div class="pw-field">
+          <input type="password" id="reset-pw-confirmar">
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('reset-pw-confirmar', this)">👁️</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-reset-password')">Cancelar</button>
+        <button class="btn-primary" onclick="confirmarResetPassword()">Guardar nueva contraseña</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: matricular existente -->
+  <div class="modal-overlay" id="modal-enroll">
+    <div class="modal">
+      <h3>Matricular alumno existente</h3>
+      <div class="field"><label>Número de cuenta</label><input type="text" id="enroll-numero-cuenta"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-enroll')">Cancelar</button>
+        <button class="btn-primary" onclick="matricularExistente()">Matricular</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: nueva actividad -->
+  <div class="modal-overlay" id="modal-new-entregable">
+    <div class="modal">
+      <h3>Nueva actividad</h3>
+      <div class="field"><label>Nombre *</label><input type="text" id="ent-nombre"></div>
+      <div class="field"><label>Descripción</label><textarea id="ent-descripcion"></textarea></div>
+      <div class="field"><label>Fecha límite</label><input type="date" id="ent-fecha"></div>
+      <div class="field"><label>Prompt del examen para esta actividad</label><textarea id="ent-prompt" style="min-height:160px;"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-new-entregable')">Cancelar</button>
+        <button class="btn-primary" onclick="crearEntregable()">Crear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: editar prompt de una actividad -->
+  <div class="modal-overlay" id="modal-activity-prompt">
+    <div class="modal">
+      <h3>Prompt de "<span id="ap-ent-nombre"></span>"</h3>
+      <div class="field"><label>Prompt del examen para esta actividad</label><textarea id="ap-prompt-input" style="min-height:260px;"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-activity-prompt')">Cancelar</button>
+        <button class="btn-primary" onclick="guardarPromptActividad()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: nombrado de archivos del entregable -->
+  <div class="modal-overlay" id="modal-naming">
+    <div class="modal">
+      <h3>Nombrado de archivos</h3>
+      <p style="font-size:13px;color:var(--muted);margin-top:-8px;">
+        Elige con qué datos del alumno se nombrará el chat guardado de "<b id="naming-ent-nombre"></b>".
+        Haz clic en el orden en que quieres que aparezcan.
+      </p>
+      <div class="chips-list" id="naming-chips"></div>
+      <div class="naming-preview">Vista previa: <b id="naming-preview-text"></b></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-naming')">Cancelar</button>
+        <button class="btn-primary" onclick="guardarNombrado()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: entregas (archivos generados) de un entregable -->
+  <div class="modal-overlay" id="modal-entregas">
+    <div class="modal" style="max-width:560px;">
+      <h3>Entregas de "<span id="entregas-ent-nombre"></span>"</h3>
+      <div id="entregas-list"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-entregas')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: visor de transcripción de una entrega -->
+  <div class="modal-overlay" id="modal-transcript">
+    <div class="modal" style="max-width:680px;">
+      <h3 style="margin-bottom:4px;">Conversación</h3>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:0;" id="transcript-archivo-nombre"></p>
+      <div class="transcript" id="transcript-content"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-transcript')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const saved = localStorage.getItem('botTheme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+})();
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('botTheme', next);
+  document.getElementById('theme-toggle').textContent = next === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+  cargarPerfil();
+  cargarClases();
+});
+
+let claseActualId = null;
+let entregablesActuales = [];
+let entregableNombradoActualId = null;
+let camposNombradoSeleccionados = [];
+let entregableEntregasActualId = null;
+
+const CAMPOS_NOMBRADO_INFO = [
+  { key: 'nombre', label: 'Nombre' },
+  { key: 'apellidoPaterno', label: 'Apellido paterno' },
+  { key: 'apellidoMaterno', label: 'Apellido materno' },
+  { key: 'numeroCuenta', label: 'Número de cuenta' },
+  { key: 'usuario', label: 'Usuario' }
+];
+
+let analizadorConfigurado = false;
+
+async function cargarPerfil() {
+  const res = await fetch('/api/profesor/me');
+  if (!res.ok) { window.location.href = '/login-profesor.html'; return; }
+  const data = await res.json();
+  if (data.profesor) {
+    document.getElementById('profesor-nombre').textContent = `${data.profesor.nombre} ${data.profesor.apellido_paterno}`;
+    analizadorConfigurado = !!data.profesor.analizador_configurado;
+  }
+}
+
+function abrirAnalizadorPasswordModal() {
+  document.getElementById('ap-contrasena').value = '';
+  document.getElementById('analyzer-pw-estado').textContent = analizadorConfigurado
+    ? '✓ Ya tienes una contraseña del analizador configurada. Guardar aquí la reemplaza.'
+    : 'Todavía no has configurado una contraseña del analizador: tus alumnos no podrán usarlo hasta que la definas.';
+  openModal('modal-analyzer-password');
+}
+
+async function guardarAnalizadorPassword() {
+  const contrasena = document.getElementById('ap-contrasena').value;
+  if (!contrasena || contrasena.trim().length < 4) {
+    alert('La contraseña del analizador debe tener al menos 4 caracteres.');
+    return;
+  }
+  const res = await fetch('/api/profesor/me/analizador-password', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contrasena })
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'No se pudo guardar la contraseña del analizador.'); return; }
+  analizadorConfigurado = true;
+  closeModal('modal-analyzer-password');
+  alert('Contraseña del analizador actualizada.');
+}
+
+async function logout() {
+  await fetch('/api/profesor/logout', { method: 'POST' });
+  window.location.href = '/presenta.html';
+}
+
+async function cargarClases() {
+  const res = await fetch('/api/profesor/clases');
+  const data = await res.json();
+  const container = document.getElementById('cards-container');
+  container.innerHTML = '';
+  if (!data.clases || data.clases.length === 0) {
+    container.innerHTML = '<div class="empty-state">Aún no tienes clases. Crea la primera con el botón "+ Nueva clase".</div>';
+    return;
+  }
+  data.clases.forEach(clase => {
+    const card = document.createElement('div');
+    card.className = 'class-card';
+    card.onclick = () => abrirClase(clase.id);
+    card.innerHTML = `<h3>${escapeHtml(clase.nombre)}</h3><div class="meta">${clase.total_alumnos} alumno(s) · ${clase.estado}</div>`;
+    container.appendChild(card);
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁️';
+}
+
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function openNewClassModal() { document.getElementById('new-class-nombre').value=''; document.getElementById('new-class-prompt').value=''; openModal('modal-new-class'); }
+
+async function crearClase() {
+  const nombre = document.getElementById('new-class-nombre').value.trim();
+  const promptExamen = document.getElementById('new-class-prompt').value.trim();
+  if (!nombre) { alert('El nombre es obligatorio.'); return; }
+  const res = await fetch('/api/profesor/clases', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre, promptExamen })
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'No se pudo crear la clase.'); return; }
+  closeModal('modal-new-class');
+  cargarClases();
+}
+
+function showListView() {
+  document.getElementById('list-view').style.display = 'block';
+  document.getElementById('detail-view').style.display = 'none';
+  claseActualId = null;
+  cargarClases();
+}
+
+function showMsg(text, type) {
+  const box = document.getElementById('msg-box');
+  box.textContent = text;
+  box.className = `msg-box show ${type}`;
+  setTimeout(() => box.classList.remove('show'), 4000);
+}
+
+async function abrirClase(claseId) {
+  claseActualId = claseId;
+  document.getElementById('list-view').style.display = 'none';
+  document.getElementById('detail-view').style.display = 'block';
+  switchTab('prompt');
+  await refrescarDetalle();
+}
+
+async function refrescarDetalle() {
+  const res = await fetch(`/api/profesor/clases/${claseActualId}`);
+  if (!res.ok) { showMsg('No se pudo cargar la clase.', 'error'); return; }
+  const data = await res.json();
+
+  document.getElementById('detail-clase-nombre').textContent = data.clase.nombre;
+  document.getElementById('clase-nombre-input').value = data.clase.nombre;
+  document.getElementById('clase-prompt-input').value = data.clase.prompt_examen || '';
+
+  const alumnosTbody = document.getElementById('alumnos-tbody');
+  alumnosTbody.innerHTML = data.alumnos.map(a => `
+    <tr>
+      <td>${escapeHtml(a.nombre)} ${escapeHtml(a.apellido_paterno)} ${escapeHtml(a.apellido_materno || '')}</td>
+      <td>${escapeHtml(a.numero_cuenta)}</td>
+      <td>${escapeHtml(a.usuario)}</td>
+      <td><button class="btn-secondary" onclick="abrirResetPassword(${a.id}, '${escapeHtml(a.usuario)}')">Cambiar contraseña</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" style="color:var(--muted)">Sin alumnos inscritos todavía.</td></tr>';
+
+  entregablesActuales = data.entregables;
+  const entregablesTbody = document.getElementById('entregables-tbody');
+  entregablesTbody.innerHTML = data.entregables.map(e => `
+    <tr>
+      <td>${escapeHtml(e.nombre)}</td>
+      <td>${escapeHtml(e.descripcion || '')}</td>
+      <td>${e.fecha_limite ? new Date(e.fecha_limite).toLocaleDateString() : ''}</td>
+      <td><span class="pill pill-${e.estado}">${e.estado}</span></td>
+      <td style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn-secondary" onclick="abrirEditarPrompt(${e.id})">Prompt</button>
+        <button class="btn-secondary" onclick="abrirNombrado(${e.id})">Nombrado</button>
+        <button class="btn-secondary" onclick="abrirEntregas(${e.id})">Ver entregas</button>
+        ${estadoBotones(e)}
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="5" style="color:var(--muted)">Sin actividades todavía.</td></tr>';
+
+  await cargarCalificaciones();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tab === tab));
+}
+
+async function guardarClase() {
+  const nombre = document.getElementById('clase-nombre-input').value.trim();
+  const res = await fetch(`/api/profesor/clases/${claseActualId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nombre })
+  });
+  const data = await res.json();
+  if (!res.ok) { showMsg(data.error || 'No se pudo guardar.', 'error'); return; }
+  showMsg('Cambios guardados correctamente.', 'success');
+}
+
+function openNewStudentModal() {
+  ['ns-nombre','ns-apellido-paterno','ns-apellido-materno','ns-numero-cuenta','ns-anio','ns-mes','ns-dia','ns-usuario','ns-contrasena']
+    .forEach(id => document.getElementById(id).value = '');
+  updateNsPasswordRules();
+  openModal('modal-new-student');
+}
+
+const pwRules = {
+  length: pw => pw.length >= 8,
+  upper: pw => /[A-Z]/.test(pw),
+  lower: pw => /[a-z]/.test(pw),
+  number: pw => /[0-9]/.test(pw),
+  symbol: pw => /[^A-Za-z0-9]/.test(pw)
+};
+function updateNsPasswordRules() {
+  const pw = document.getElementById('ns-contrasena').value;
+  let allOk = true;
+  Object.keys(pwRules).forEach(key => {
+    const el = document.querySelector(`#ns-password-rules .rule[data-rule="${key}"]`);
+    const ok = pwRules[key](pw);
+    if (!ok) allOk = false;
+    el.classList.toggle('ok', ok);
+    el.querySelector('.mark').textContent = ok ? '✓' : '○';
+  });
+  return allOk;
+}
+document.addEventListener('input', (e) => { if (e.target.id === 'ns-contrasena') updateNsPasswordRules(); });
+
+async function crearAlumno() {
+  if (!updateNsPasswordRules()) { alert('La contraseña no cumple los requisitos mínimos.'); return; }
+  const payload = {
+    nombre: document.getElementById('ns-nombre').value.trim(),
+    apellidoPaterno: document.getElementById('ns-apellido-paterno').value.trim(),
+    apellidoMaterno: document.getElementById('ns-apellido-materno').value.trim(),
+    numeroCuenta: document.getElementById('ns-numero-cuenta').value.trim(),
+    anioNacimiento: Number(document.getElementById('ns-anio').value),
+    mesNacimiento: Number(document.getElementById('ns-mes').value),
+    diaNacimiento: Number(document.getElementById('ns-dia').value),
+    usuario: document.getElementById('ns-usuario').value.trim(),
+    contrasena: document.getElementById('ns-contrasena').value
+  };
+  const res = await fetch(`/api/profesor/clases/${claseActualId}/alumnos`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'No se pudo registrar al alumno.'); return; }
+  closeModal('modal-new-student');
+  refrescarDetalle();
+}
+
+// ===== Restablecer contraseña de un alumno inscrito en alguna de tus clases =====
+let resetPwTarget = null; // { id, usuario }
+
+function abrirResetPassword(alumnoId, usuario) {
+  resetPwTarget = { id: alumnoId, usuario };
+  document.getElementById('reset-pw-usuario').textContent = usuario;
+  document.getElementById('reset-pw-nueva').value = '';
+  document.getElementById('reset-pw-confirmar').value = '';
+  updateResetPwRules();
+  openModal('modal-reset-password');
+}
+
+function updateResetPwRules() {
+  const pw = document.getElementById('reset-pw-nueva').value;
+  let allOk = true;
+  Object.keys(pwRules).forEach(key => {
+    const el = document.querySelector(`#reset-pw-rules .rule[data-rule="${key}"]`);
+    const ok = pwRules[key](pw);
+    if (!ok) allOk = false;
+    el.classList.toggle('ok', ok);
+    el.querySelector('.mark').textContent = ok ? '✓' : '○';
+  });
+  return allOk;
+}
+document.addEventListener('input', (e) => { if (e.target.id === 'reset-pw-nueva') updateResetPwRules(); });
+
+async function confirmarResetPassword() {
+  if (!resetPwTarget) return;
+  if (!updateResetPwRules()) { alert('La contraseña no cumple los requisitos mínimos.'); return; }
+  const nueva = document.getElementById('reset-pw-nueva').value;
+  const confirmar = document.getElementById('reset-pw-confirmar').value;
+  if (nueva !== confirmar) { alert('Las contraseñas no coinciden.'); return; }
+
+  const res = await fetch(`/api/profesor/alumnos/${resetPwTarget.id}/contrasena`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contrasena: nueva })
+  });
+  const data = await res.json();
+  if (!res.ok) { showMsg(data.error || 'No se pudo cambiar la contraseña.', 'error'); return; }
+  showMsg(`Contraseña de "${resetPwTarget.usuario}" actualizada.`, 'success');
+  closeModal('modal-reset-password');
+}
+
+function openEnrollModal() { document.getElementById('enroll-numero-cuenta').value = ''; openModal('modal-enroll'); }
+async function matricularExistente() {
+  const numeroCuenta = document.getElementById('enroll-numero-cuenta').value.trim();
+  const res = await fetch(`/api/profesor/clases/${claseActualId}/inscribir`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ numeroCuenta })
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'No se pudo matricular.'); return; }
+  closeModal('modal-enroll');
+  refrescarDetalle();
+}
+
+function openNewEntregableModal() {
+  document.getElementById('ent-nombre').value = '';
+  document.getElementById('ent-descripcion').value = '';
+  document.getElementById('ent-fecha').value = '';
+  document.getElementById('ent-prompt').value = '';
+  openModal('modal-new-entregable');
+}
+async function crearEntregable() {
+  const payload = {
+    nombre: document.getElementById('ent-nombre').value.trim(),
+    descripcion: document.getElementById('ent-descripcion').value.trim(),
+    fechaLimite: document.getElementById('ent-fecha').value || null,
+    promptExamen: document.getElementById('ent-prompt').value
+  };
+  const res = await fetch(`/api/profesor/clases/${claseActualId}/entregables`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'No se pudo crear la actividad.'); return; }
+  closeModal('modal-new-entregable');
+  refrescarDetalle();
+}
+
+// ===== Prompt y estado de cada actividad =====
+
+// Construye los botones de cambio de estado según el estado actual de la actividad.
+function estadoBotones(e) {
+  if (e.estado === 'habilitada') {
+    return `
+      <button class="btn-secondary" onclick="cambiarEstadoActividad(${e.id}, 'pausada')">Pausar</button>
+      <button class="btn-danger" onclick="cambiarEstadoActividad(${e.id}, 'eliminada')">Eliminar</button>
+    `;
+  }
+  if (e.estado === 'pausada') {
+    return `
+      <button class="btn-secondary" onclick="cambiarEstadoActividad(${e.id}, 'habilitada')">Habilitar</button>
+      <button class="btn-danger" onclick="cambiarEstadoActividad(${e.id}, 'eliminada')">Eliminar</button>
+    `;
+  }
+  // eliminada: solo se puede restaurar, no volver a eliminar
+  return `<button class="btn-secondary" onclick="cambiarEstadoActividad(${e.id}, 'habilitada')">Restaurar</button>`;
+}
+
+async function cambiarEstadoActividad(entregableId, nuevoEstado) {
+  if (nuevoEstado === 'eliminada' && !confirm('¿Eliminar esta actividad? Tus alumnos ya no podrán verla ni iniciarla (sus calificaciones y entregas guardadas se conservan).')) return;
+  const res = await fetch(`/api/profesor/entregables/${entregableId}/estado`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado: nuevoEstado })
+  });
+  const data = await res.json();
+  if (!res.ok) { showMsg(data.error || 'No se pudo cambiar el estado.', 'error'); return; }
+  refrescarDetalle();
+}
+
+function abrirEditarPrompt(entregableId) {
+  const entregable = entregablesActuales.find(e => e.id === entregableId);
+  if (!entregable) return;
+  document.getElementById('ap-ent-nombre').textContent = entregable.nombre;
+  document.getElementById('ap-prompt-input').value = entregable.prompt_examen || '';
+  document.getElementById('ap-prompt-input').dataset.entregableId = entregableId;
+  openModal('modal-activity-prompt');
+}
+
+async function guardarPromptActividad() {
+  const input = document.getElementById('ap-prompt-input');
+  const entregableId = input.dataset.entregableId;
+  const res = await fetch(`/api/profesor/entregables/${entregableId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ promptExamen: input.value })
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'No se pudo guardar el prompt.'); return; }
+  closeModal('modal-activity-prompt');
+  refrescarDetalle();
+}
+
+async function cargarCalificaciones() {
+  const res = await fetch(`/api/profesor/clases/${claseActualId}/calificaciones`);
+  const data = await res.json();
+  const tbody = document.getElementById('calificaciones-tbody');
+  if (!data.filas || data.filas.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No hay alumnos o entregables todavía.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.filas.map(f => `
+    <tr>
+      <td>${escapeHtml(f.nombre)} ${escapeHtml(f.apellido_paterno)}</td>
+      <td>${escapeHtml(f.entregable_nombre)}</td>
+      <td><input type="number" min="0" max="10" step="0.1" value="${f.calificacion != null ? f.calificacion : ''}" data-alumno="${f.alumno_id}" data-entregable="${f.entregable_id}"></td>
+      <td>${f.origen || '—'}</td>
+      <td><button class="btn-secondary" onclick="guardarCalificacion(this)">Guardar</button></td>
+    </tr>
+  `).join('');
+}
+
+async function guardarCalificacion(btn) {
+  const row = btn.closest('tr');
+  const input = row.querySelector('input[type="number"]');
+  const payload = {
+    alumnoId: Number(input.dataset.alumno),
+    entregableId: Number(input.dataset.entregable),
+    calificacion: Number(input.value)
+  };
+  const res = await fetch('/api/profesor/calificaciones', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!res.ok) { showMsg(data.error || 'No se pudo guardar la calificación.', 'error'); return; }
+  showMsg('Calificación guardada.', 'success');
+  cargarCalificaciones();
+}
+
+// ===== Nombrado de archivos por entregable =====
+function abrirNombrado(entregableId) {
+  const entregable = entregablesActuales.find(e => e.id === entregableId);
+  if (!entregable) return;
+  entregableNombradoActualId = entregableId;
+  camposNombradoSeleccionados = (entregable.criterios_nombrado && Array.isArray(entregable.criterios_nombrado.fields))
+    ? [...entregable.criterios_nombrado.fields]
+    : [];
+  document.getElementById('naming-ent-nombre').textContent = entregable.nombre;
+  renderChipsNombrado();
+  openModal('modal-naming');
+}
+
+function renderChipsNombrado() {
+  const cont = document.getElementById('naming-chips');
+  cont.innerHTML = CAMPOS_NOMBRADO_INFO.map(c => {
+    const pos = camposNombradoSeleccionados.indexOf(c.key);
+    const selected = pos !== -1;
+    return `
+      <div class="chip-field ${selected ? 'selected' : ''}" onclick="toggleCampoNombrado('${c.key}')">
+        <span class="order-badge">${selected ? pos + 1 : ''}</span>
+        <span>${c.label}</span>
+      </div>
+    `;
+  }).join('');
+  actualizarPreviewNombrado();
+}
+
+function toggleCampoNombrado(key) {
+  const pos = camposNombradoSeleccionados.indexOf(key);
+  if (pos === -1) {
+    camposNombradoSeleccionados.push(key);
+  } else {
+    camposNombradoSeleccionados.splice(pos, 1);
+  }
+  renderChipsNombrado();
+}
+
+function actualizarPreviewNombrado() {
+  const ejemplos = { nombre: 'Juan', apellidoPaterno: 'Pérez', apellidoMaterno: 'García', numeroCuenta: '12345678', usuario: 'jperez' };
+  const partes = camposNombradoSeleccionados.map(k => ejemplos[k]).filter(Boolean);
+  const base = partes.length > 0 ? partes.join('_') : (ejemplos.usuario);
+  document.getElementById('naming-preview-text').textContent = `${base}_1718000000000.txt`;
+}
+
+async function guardarNombrado() {
+  const res = await fetch(`/api/profesor/entregables/${entregableNombradoActualId}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ criteriosNombrado: { fields: camposNombradoSeleccionados } })
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'No se pudo guardar el nombrado.'); return; }
+  closeModal('modal-naming');
+  refrescarDetalle();
+}
+
+// ===== Entregas (archivos generados) por entregable =====
+async function abrirEntregas(entregableId) {
+  const entregable = entregablesActuales.find(e => e.id === entregableId);
+  if (!entregable) return;
+  entregableEntregasActualId = entregableId;
+  document.getElementById('entregas-ent-nombre').textContent = entregable.nombre;
+  const listEl = document.getElementById('entregas-list');
+  listEl.innerHTML = '<div class="empty-state">Cargando...</div>';
+  openModal('modal-entregas');
+
+  const res = await fetch(`/api/profesor/entregables/${entregableId}/entregas`);
+  const data = await res.json();
+  if (!res.ok) { listEl.innerHTML = `<div class="empty-state">${escapeHtml(data.error || 'No se pudieron cargar las entregas.')}</div>`; return; }
+  if (!data.entregas || data.entregas.length === 0) {
+    listEl.innerHTML = '<div class="empty-state">Todavía no hay entregas guardadas para este entregable.</div>';
+    return;
+  }
+  listEl.innerHTML = data.entregas.map(en => `
+    <div class="entrega-row">
+      <div>
+        <div>${escapeHtml(en.archivo)}</div>
+        <div class="meta">${new Date(en.modificadoEn).toLocaleString()}</div>
+      </div>
+      <button class="btn-secondary" onclick="verEntrega(${entregableId}, '${en.archivo.replace(/'/g, "\\'")}')">Ver conversación</button>
+    </div>
+  `).join('');
+}
+
+async function verEntrega(entregableId, archivo) {
+  const res = await fetch(`/api/profesor/entregables/${entregableId}/entregas/${encodeURIComponent(archivo)}`);
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'No se pudo abrir la entrega.'); return; }
+  document.getElementById('transcript-archivo-nombre').textContent = data.archivo;
+  const cont = document.getElementById('transcript-content');
+  cont.innerHTML = (data.turnos || []).map(t => `
+    <div class="turno ${t.sender === 'bot' ? 'bot' : 'alumno'}">
+      <span class="turno-tag">${t.sender === 'bot' ? 'Bot' : 'Alumno'}</span>
+      ${escapeHtml(t.content)}
+    </div>
+  `).join('') || '<div class="empty-state">Esta entrega no tiene contenido.</div>';
+  openModal('modal-transcript');
+}
+</script>
+</body>
+</html>

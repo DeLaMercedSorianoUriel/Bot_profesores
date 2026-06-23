@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel del Alumno · Tutor Académico</title>
+<style>
+  :root {
+    --bg: #f4f5f9;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --surface: #ffffff;
+    --border: #e5e7eb;
+    --accent-a: #11998e;
+    --accent-b: #38ef7d;
+    --success: #0d7d3c;
+  }
+  [data-theme="dark"] {
+    --bg: #14151c;
+    --text: #f1f1f4;
+    --muted: #9aa0ad;
+    --surface: #1f2128;
+    --border: #30323c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  .topbar {
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    color: #08372f;
+    padding: 18px 28px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .topbar .who { font-size: 13px; opacity: 0.85; }
+  .topbar .actions { display: flex; align-items: center; gap: 10px; }
+  .topbar button {
+    background: rgba(255,255,255,0.35); border: 1px solid rgba(8,55,47,0.3); color: #08372f;
+    padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 28px 20px 60px; }
+  h2 { font-size: 20px; margin: 28px 0 16px; }
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; }
+  .class-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px; }
+  .class-card h3 { margin: 0 0 4px; font-size: 17px; }
+  .class-card .meta { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .enter-btn {
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    color: #08372f; border: none; padding: 10px 18px; border-radius: 999px; cursor: pointer;
+    font-size: 13px; font-weight: 700;
+  }
+  .empty-state { color: var(--muted); padding: 30px; text-align: center; }
+  .activities-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+  .activity-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
+  }
+  .activity-name { font-weight: 600; font-size: 13.5px; }
+  .activity-row .meta { font-size: 12px; margin-bottom: 0; }
+  .paused-pill {
+    background: #fdf3e0; color: #92600a; font-size: 12px; font-weight: 700;
+    padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; }
+  .grade-pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-weight: 700; }
+  .grade-good { background: #e6f9ed; color: var(--success); }
+  .grade-low { background: #fde8e8; color: #b91c1c; }
+</style>
+</head>
+<body data-theme="dark">
+  <div class="topbar">
+    <h1>🎓 Panel del Alumno</h1>
+    <div class="actions">
+      <span class="who" id="alumno-nombre"></span>
+      <button onclick="toggleTheme()" id="theme-toggle">☀️ Claro</button>
+      <button onclick="logout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>Tus clases</h2>
+    <div id="cards-container" class="cards-grid"></div>
+
+    <h2>Tus calificaciones</h2>
+    <table>
+      <thead><tr><th>Clase</th><th>Entregable</th><th>Calificación</th><th>Origen</th></tr></thead>
+      <tbody id="calificaciones-tbody"></tbody>
+    </table>
+  </div>
+
+<script>
+(function () {
+  const saved = localStorage.getItem('botTheme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+})();
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('botTheme', next);
+  document.getElementById('theme-toggle').textContent = next === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+  cargarPerfil();
+  cargarClases();
+  cargarCalificaciones();
+});
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+async function cargarPerfil() {
+  const res = await fetch('/api/alumno/me');
+  if (!res.ok) { window.location.href = '/login-alumno.html'; return; }
+  const data = await res.json();
+  if (data.alumno) {
+    document.getElementById('alumno-nombre').textContent = `${data.alumno.nombre} ${data.alumno.apellido_paterno}`;
+  }
+}
+
+async function logout() {
+  await fetch('/api/alumno/logout', { method: 'POST' });
+  window.location.href = '/presenta.html';
+}
+
+async function cargarClases() {
+  const res = await fetch('/api/alumno/clases');
+  const data = await res.json();
+  const container = document.getElementById('cards-container');
+  container.innerHTML = '';
+  if (!data.clases || data.clases.length === 0) {
+    container.innerHTML = '<div class="empty-state">Aún no estás inscrito en ninguna clase. Pídele a tu profesor que te matricule.</div>';
+    return;
+  }
+  data.clases.forEach(clase => {
+    const card = document.createElement('div');
+    card.className = 'class-card';
+    card.innerHTML = `
+      <h3>${escapeHtml(clase.nombre)}</h3>
+      <div class="meta">Prof. ${escapeHtml(clase.profesor_nombre)} ${escapeHtml(clase.profesor_apellido)}</div>
+      <div class="activities-list" id="activities-${clase.id}">
+        <div class="empty-state" style="padding:10px;">Cargando actividades...</div>
+      </div>
+    `;
+    container.appendChild(card);
+    cargarActividades(clase.id);
+  });
+}
+
+// Una clase ahora puede tener varias actividades (antes era un único examen por clase), cada
+// una con su propio estado: solo las habilitadas se pueden iniciar.
+async function cargarActividades(claseId) {
+  const listEl = document.getElementById(`activities-${claseId}`);
+  const res = await fetch(`/api/alumno/clases/${claseId}/actividades`);
+  const data = await res.json();
+  if (!res.ok) {
+    listEl.innerHTML = '<div class="empty-state" style="padding:10px;">No se pudieron cargar las actividades.</div>';
+    return;
+  }
+  if (!data.actividades || data.actividades.length === 0) {
+    listEl.innerHTML = '<div class="empty-state" style="padding:10px;">Tu profesor todavía no tiene actividades disponibles.</div>';
+    return;
+  }
+  listEl.innerHTML = data.actividades.map(act => {
+    const disponible = act.estado === 'habilitada';
+    return `
+      <div class="activity-row">
+        <div>
+          <div class="activity-name">${escapeHtml(act.nombre)}</div>
+          ${act.descripcion ? `<div class="meta">${escapeHtml(act.descripcion)}</div>` : ''}
+          ${act.fecha_limite ? `<div class="meta">Fecha límite: ${new Date(act.fecha_limite).toLocaleDateString()}</div>` : ''}
+        </div>
+        ${disponible
+          ? `<button class="enter-btn" onclick="window.location.href='/examen/${claseId}/${act.id}'">Entrar</button>`
+          : `<span class="paused-pill">⏸ Pausada</span>`}
+      </div>
+    `;
+  }).join('');
+}
+
+async function cargarCalificaciones() {
+  const res = await fetch('/api/alumno/calificaciones');
+  const data = await res.json();
+  const tbody = document.getElementById('calificaciones-tbody');
+  if (!data.calificaciones || data.calificaciones.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">Todavía no tienes calificaciones.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.calificaciones.map(c => {
+    const grade = Number(c.calificacion);
+    const cls = grade >= 6 ? 'grade-good' : 'grade-low';
+    return `<tr>
+      <td>${escapeHtml(c.clase_nombre)}</td>
+      <td>${escapeHtml(c.entregable_nombre)}</td>
+      <td><span class="grade-pill ${cls}">${grade.toFixed(1)}</span></td>
+      <td>${c.origen}</td>
+    </tr>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

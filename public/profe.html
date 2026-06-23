@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configurar Prompt - Chatbot</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --text: #ffffff;
+      --surface: #2c2c2c;
+      --border: #555;
+      --btn-bg: #333;
+      --btn-hover: #555;
+      --accent: #90ee90;
+      --error: #ff4d4d;
+      --nav-link: #8ab4f8;
+    }
+    [data-theme="light"] {
+      --bg: #f4f4f6;
+      --text: #1a1a1a;
+      --surface: #ffffff;
+      --border: #ccc;
+      --btn-bg: #667eea;
+      --btn-hover: #5568d3;
+      --accent: #2e7d32;
+      --error: #d32f2f;
+      --nav-link: #3457d5;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      text-align: center;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Línea de redirección/navegación, siempre hasta arriba en su propia línea */
+    nav.top-nav {
+      display: block;
+      width: 100%;
+      padding: 14px 0;
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav.top-nav a {
+      color: var(--nav-link);
+      text-decoration: none;
+      margin: 0 10px;
+      font-weight: 600;
+    }
+
+    nav.top-nav a:hover {
+      text-decoration: underline;
+    }
+
+    #theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 999;
+    }
+
+    h1 {
+      margin-top: 30px;
+    }
+
+    /* Contenedor para el formulario */
+    .input-container {
+      display: flex;
+      gap: 15px;
+      width: 90%;
+      max-width: 800px;
+      margin: 40px auto;
+    }
+
+    /* Entrada de texto */
+    #prompt-input {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      color: var(--text);
+    }
+
+    /* Botón de enviar */
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: var(--btn-bg);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      align-self: flex-start;
+    }
+
+    button:hover {
+      background-color: var(--btn-hover);
+    }
+
+    /* Mensaje de estado */
+    #status-message {
+      margin-top: 20px;
+      color: var(--accent);
+    }
+
+    .error {
+      color: var(--error);
+    }
+  </style>
+</head>
+<body>
+  <!-- Redirección: siempre en su propia línea, hasta arriba -->
+  <nav class="top-nav">
+    <a href="/profe.html">Configurar Prompt</a> |
+    <a href="/config-naming.html">Configurar Nombrado</a>
+  </nav>
+
+  <button id="theme-toggle" onclick="toggleTheme()">☀️ Claro</button>
+
+  <h1>Configurar Prompt Inicial</h1>
+  <div class="input-container">
+    <textarea id="prompt-input" placeholder="Ingresa el nuevo prompt inicial..." rows="3"></textarea>
+    <button onclick="updatePrompt()">Actualizar</button>
+  </div>
+  <div id="status-message"></div>
+
+  <script>
+    // Modo oscuro/claro persistente entre páginas
+    (function () {
+      const saved = localStorage.getItem('botTheme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('botTheme', next);
+      document.getElementById('theme-toggle').textContent = next === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    });
+
+    async function updatePrompt() {
+      const promptInput = document.getElementById('prompt-input');
+      const statusMessage = document.getElementById('status-message');
+      const prompt = promptInput.value.trim();
+
+      if (!prompt) {
+        statusMessage.textContent = 'El prompt no puede estar vacío.';
+        statusMessage.classList.add('error');
+        return;
+      }
+
+      try {
+        const response = await fetch('/update-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          statusMessage.textContent = data.message;
+          statusMessage.classList.remove('error');
+          promptInput.value = '';
+          promptInput.style.height = 'auto'; // Volver al tamaño original
+        } else {
+          statusMessage.textContent = data.error || 'Error al actualizar el prompt.';
+          statusMessage.classList.add('error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        statusMessage.textContent = 'Error de conexión.';
+        statusMessage.classList.add('error');
+      }
+    }
+
+    // Asegurar que el cuadro de prompt crezca con el texto y sea visible
+    const promptInput = document.getElementById('prompt-input');
+    function autoResizeAndScroll() {
+      promptInput.style.height = 'auto';
+      promptInput.style.height = promptInput.scrollHeight + 'px';
+      promptInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Ajustar al enfocar y al escribir
+    promptInput.addEventListener('focus', autoResizeAndScroll);
+    promptInput.addEventListener('input', autoResizeAndScroll);
+  </script>
+</body>
+</html>

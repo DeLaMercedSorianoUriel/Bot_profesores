@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Administrador · Tutor Académico</title>
+<style>
+  :root {
+    --bg: #f4f5f9;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --surface: #ffffff;
+    --border: #e5e7eb;
+    --input-bg: #f5f6fa;
+    --accent-a: #232526;
+    --accent-b: #c79a3c;
+    --danger: #b91c1c;
+    --success: #0d7d3c;
+  }
+  [data-theme="dark"] {
+    --bg: #14151c;
+    --text: #f1f1f4;
+    --muted: #9aa0ad;
+    --surface: #1f2128;
+    --border: #30323c;
+    --input-bg: #282a33;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  .topbar {
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    color: #fff; padding: 18px 28px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .topbar .who { font-size: 13px; opacity: 0.85; }
+  .topbar .actions { display: flex; align-items: center; gap: 10px; }
+  .topbar button {
+    background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.4); color: #fff;
+    padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tab-btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: 13px;
+  }
+  .tab-btn.active { background: linear-gradient(135deg, var(--accent-a), var(--accent-b)); color: #fff; border-color: transparent; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .card-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .section-title h3 { margin: 0; font-size: 15px; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    color: #fff; border: none; padding: 10px 18px; border-radius: 999px;
+    cursor: pointer; font-size: 14px; font-weight: 600;
+  }
+  .btn-secondary {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 999px; cursor: pointer; font-size: 13px;
+  }
+  .btn-danger {
+    background: #fde8e8; color: var(--danger); border: 1px solid #f3c5c5;
+    padding: 7px 12px; border-radius: 999px; cursor: pointer; font-size: 12.5px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; }
+  .empty-state { color: var(--muted); padding: 20px; text-align: center; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+  .pill-activo { background: #e6f9ed; color: var(--success); }
+  .pill-inactivo { background: #fde8e8; color: var(--danger); }
+  .pill-auto { background: #e6f0fd; color: #1d4ed8; }
+  .pill-manual { background: #fdf3e0; color: #92600a; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--surface); color: var(--text); border-radius: 20px; padding: 28px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { margin-top: 0; }
+  .field { margin-bottom: 14px; text-align: left; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+  .field input, .field select { width: 100%; padding: 11px 13px; border-radius: 10px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 14px; font-family: inherit; }
+  .row-2 { display: flex; gap: 10px; }
+  .row-2 .field { flex: 1; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+  .password-rules { background: var(--input-bg); border-radius: 10px; padding: 10px 12px; margin: -4px 0 14px; font-size: 12.5px; }
+  .password-rules .rule { display: flex; gap: 8px; padding: 2px 0; color: var(--muted); }
+  .password-rules .rule.ok { color: var(--success); font-weight: 600; }
+
+  .pw-field { position: relative; }
+  .pw-field input { padding-right: 44px; }
+  .pw-toggle {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; font-size: 17px; padding: 6px; line-height: 1;
+  }
+
+  .msg-box { display: none; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; }
+  .msg-box.error { background: #fde8e8; color: var(--danger); }
+  .msg-box.success { background: #e6f9ed; color: var(--success); }
+  .msg-box.show { display: block; }
+</style>
+</head>
+<body data-theme="dark">
+  <div class="topbar">
+    <h1>🛡️ Panel de Administrador</h1>
+    <div class="actions">
+      <span class="who" id="admin-nombre"></span>
+      <button onclick="toggleTheme()" id="theme-toggle">☀️ Claro</button>
+      <button onclick="logout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="msg-box" class="msg-box"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="profesores" onclick="switchTab('profesores')">Profesores</button>
+      <button class="tab-btn" data-tab="alumnos" onclick="switchTab('alumnos')">Alumnos</button>
+      <button class="tab-btn" data-tab="clases" onclick="switchTab('clases')">Clases</button>
+      <button class="tab-btn" data-tab="inscripciones" onclick="switchTab('inscripciones')">Inscripciones</button>
+      <button class="tab-btn" data-tab="calificaciones" onclick="switchTab('calificaciones')">Calificaciones</button>
+    </div>
+
+    <div class="tab-panel active" data-tab="profesores">
+      <div class="card-box">
+        <div class="section-title">
+          <h3>Profesores registrados</h3>
+          <a class="btn-primary" href="/registro-profesor.html" style="text-decoration:none;">+ Nuevo profesor</a>
+        </div>
+        <table>
+          <thead><tr><th>Nombre</th><th>No. cuenta</th><th>Correo</th><th>Usuario</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="profesores-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-tab="alumnos">
+      <div class="card-box">
+        <div class="section-title">
+          <h3>Alumnos registrados</h3>
+          <button class="btn-primary" onclick="openNewStudentModal()">+ Nuevo alumno</button>
+        </div>
+        <table>
+          <thead><tr><th>Nombre</th><th>No. cuenta</th><th>Usuario</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="alumnos-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-tab="clases">
+      <div class="card-box">
+        <h3>Clases</h3>
+        <table>
+          <thead><tr><th>Clase</th><th>Profesor</th><th>Alumnos inscritos</th><th>Estado</th></tr></thead>
+          <tbody id="clases-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-tab="inscripciones">
+      <div class="card-box">
+        <h3>Inscripciones (alumno ↔ clase)</h3>
+        <table>
+          <thead><tr><th>Alumno</th><th>Clase</th><th>Profesor</th><th>Inscrito el</th></tr></thead>
+          <tbody id="inscripciones-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-tab="calificaciones">
+      <div class="card-box">
+        <h3>Calificaciones</h3>
+        <table>
+          <thead><tr><th>Alumno</th><th>Clase</th><th>Entregable</th><th>Calificación</th><th>Origen</th><th>Actualizado</th></tr></thead>
+          <tbody id="calificaciones-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: nuevo alumno -->
+  <div class="modal-overlay" id="modal-new-student">
+    <div class="modal">
+      <h3>Registrar nuevo alumno</h3>
+      <div class="field"><label>Nombre *</label><input type="text" id="ns-nombre"></div>
+      <div class="row-2">
+        <div class="field"><label>Apellido paterno *</label><input type="text" id="ns-apellido-paterno"></div>
+        <div class="field"><label>Apellido materno</label><input type="text" id="ns-apellido-materno"></div>
+      </div>
+      <div class="field"><label>Número de cuenta *</label><input type="text" id="ns-numero-cuenta"></div>
+      <div class="row-2">
+        <div class="field"><label>Año nac. *</label><input type="number" id="ns-anio"></div>
+        <div class="field"><label>Mes *</label><input type="number" id="ns-mes" min="1" max="12"></div>
+        <div class="field"><label>Día *</label><input type="number" id="ns-dia" min="1" max="31"></div>
+      </div>
+      <div class="field"><label>Usuario *</label><input type="text" id="ns-usuario"></div>
+      <div class="field"><label>Contraseña *</label>
+        <div class="pw-field">
+          <input type="password" id="ns-contrasena">
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('ns-contrasena', this)">👁️</button>
+        </div>
+      </div>
+      <div class="password-rules" id="ns-password-rules">
+        <div class="rule" data-rule="length"><span class="mark">○</span> Al menos 8 caracteres</div>
+        <div class="rule" data-rule="upper"><span class="mark">○</span> Al menos una mayúscula</div>
+        <div class="rule" data-rule="lower"><span class="mark">○</span> Al menos una minúscula</div>
+        <div class="rule" data-rule="number"><span class="mark">○</span> Al menos un número</div>
+        <div class="rule" data-rule="symbol"><span class="mark">○</span> Al menos un símbolo</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-new-student')">Cancelar</button>
+        <button class="btn-primary" onclick="crearAlumno()">Registrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: restablecer contraseña (profesor o alumno olvidó la suya) -->
+  <div class="modal-overlay" id="modal-reset-password">
+    <div class="modal">
+      <h3>Restablecer contraseña</h3>
+      <p style="font-size:13px;color:var(--muted);margin-top:-8px;">Nueva contraseña para <b id="reset-pw-usuario"></b>.</p>
+      <div class="field"><label>Nueva contraseña *</label>
+        <div class="pw-field">
+          <input type="password" id="reset-pw-nueva">
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('reset-pw-nueva', this)">👁️</button>
+        </div>
+      </div>
+      <div class="password-rules" id="reset-pw-rules">
+        <div class="rule" data-rule="length"><span class="mark">○</span> Al menos 8 caracteres</div>
+        <div class="rule" data-rule="upper"><span class="mark">○</span> Al menos una mayúscula</div>
+        <div class="rule" data-rule="lower"><span class="mark">○</span> Al menos una minúscula</div>
+        <div class="rule" data-rule="number"><span class="mark">○</span> Al menos un número</div>
+        <div class="rule" data-rule="symbol"><span class="mark">○</span> Al menos un símbolo</div>
+      </div>
+      <div class="field"><label>Confirmar contraseña *</label>
+        <div class="pw-field">
+          <input type="password" id="reset-pw-confirmar">
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('reset-pw-confirmar', this)">👁️</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('modal-reset-password')">Cancelar</button>
+        <button class="btn-primary" onclick="confirmarResetPassword()">Guardar nueva contraseña</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const saved = localStorage.getItem('botTheme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+})();
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('botTheme', next);
+  document.getElementById('theme-toggle').textContent = next === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+  document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+  cargarPerfil();
+  cargarProfesores();
+  cargarAlumnos();
+  cargarClases();
+  cargarInscripciones();
+  cargarCalificaciones();
+});
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+async function cargarPerfil() {
+  const res = await fetch('/api/admin/me');
+  if (!res.ok) { window.location.href = '/login-admin.html'; return; }
+  const data = await res.json();
+  if (data.admin) document.getElementById('admin-nombre').textContent = data.admin.nombre;
+}
+
+async function logout() {
+  await fetch('/api/admin/logout', { method: 'POST' });
+  window.location.href = '/presenta.html';
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.tab === tab));
+}
+
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁️';
+}
+
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function showMsg(text, type) {
+  const box = document.getElementById('msg-box');
+  box.textContent = text;
+  box.className = `msg-box show ${type}`;
+  setTimeout(() => box.classList.remove('show'), 4000);
+}
+
+async function cargarProfesores() {
+  const res = await fetch('/api/admin/profesores');
+  const data = await res.json();
+  const tbody = document.getElementById('profesores-tbody');
+  if (!data.profesores || data.profesores.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aún no hay profesores registrados.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.profesores.map(p => `
+    <tr>
+      <td>${escapeHtml(p.nombre)} ${escapeHtml(p.apellido_paterno)} ${escapeHtml(p.apellido_materno || '')}</td>
+      <td>${escapeHtml(p.numero_cuenta)}</td>
+      <td>${escapeHtml(p.correo)}</td>
+      <td>${escapeHtml(p.usuario)}</td>
+      <td><span class="pill pill-${p.estado}">${p.estado}</span></td>
+      <td style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn-secondary" onclick="abrirResetPassword('profesor', ${p.id}, '${escapeHtml(p.usuario)}')">Cambiar contraseña</button>
+        <button class="btn-danger" onclick="eliminarProfesor(${p.id}, '${escapeHtml(p.usuario)}')">Eliminar</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function eliminarProfesor(id, usuario) {
+  if (!confirm(`¿Eliminar al profesor "${usuario}"? Esto también eliminará sus clases y datos asociados.`)) return;
+  const res = await fetch(`/api/admin/profesores/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) { showMsg(data.error || 'No se pudo eliminar.', 'error'); return; }
+  showMsg('Profesor eliminado.', 'success');
+  cargarProfesores();
+  cargarClases();
+  cargarInscripciones();
+  cargarCalificaciones();
+}
+
+async function cargarAlumnos() {
+  const res = await fetch('/api/admin/alumnos');
+  const data = await res.json();
+  const tbody = document.getElementById('alumnos-tbody');
+  if (!data.alumnos || data.alumnos.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Aún no hay alumnos registrados.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.alumnos.map(a => `
+    <tr>
+      <td>${escapeHtml(a.nombre)} ${escapeHtml(a.apellido_paterno)} ${escapeHtml(a.apellido_materno || '')}</td>
+      <td>${escapeHtml(a.numero_cuenta)}</td>
+      <td>${escapeHtml(a.usuario)}</td>
+      <td><span class="pill pill-${a.estado}">${a.estado}</span></td>
+      <td style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn-secondary" onclick="abrirResetPassword('alumno', ${a.id}, '${escapeHtml(a.usuario)}')">Cambiar contraseña</button>
+        <button class="btn-danger" onclick="eliminarAlumno(${a.id}, '${escapeHtml(a.usuario)}')">Eliminar</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function eliminarAlumno(id, usuario) {
+  if (!confirm(`¿Eliminar al alumno "${usuario}"? Esto también eliminará sus inscripciones y calificaciones.`)) return;
+  const res = await fetch(`/api/admin/alumnos/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) { showMsg(data.error || 'No se pudo eliminar.', 'error'); return; }
+  showMsg('Alumno eliminado.', 'success');
+  cargarAlumnos();
+  cargarClases();
+  cargarInscripciones();
+  cargarCalificaciones();
+}
+
+function openNewStudentModal() {
+  ['ns-nombre','ns-apellido-paterno','ns-apellido-materno','ns-numero-cuenta','ns-anio','ns-mes','ns-dia','ns-usuario','ns-contrasena']
+    .forEach(id => document.getElementById(id).value = '');
+  updateNsPasswordRules();
+  openModal('modal-new-student');
+}
+
+const pwRules = {
+  length: pw => pw.length >= 8,
+  upper: pw => /[A-Z]/.test(pw),
+  lower: pw => /[a-z]/.test(pw),
+  number: pw => /[0-9]/.test(pw),
+  symbol: pw => /[^A-Za-z0-9]/.test(pw)
+};
+function updateNsPasswordRules() {
+  const pw = document.getElementById('ns-contrasena').value;
+  let allOk = true;
+  Object.keys(pwRules).forEach(key => {
+    const el = document.querySelector(`#ns-password-rules .rule[data-rule="${key}"]`);
+    const ok = pwRules[key](pw);
+    if (!ok) allOk = false;
+    el.classList.toggle('ok', ok);
+    el.querySelector('.mark').textContent = ok ? '✓' : '○';
+  });
+  return allOk;
+}
+document.addEventListener('input', (e) => { if (e.target.id === 'ns-contrasena') updateNsPasswordRules(); });
+
+async function crearAlumno() {
+  if (!updateNsPasswordRules()) { alert('La contraseña no cumple los requisitos mínimos.'); return; }
+  const payload = {
+    nombre: document.getElementById('ns-nombre').value.trim(),
+    apellidoPaterno: document.getElementById('ns-apellido-paterno').value.trim(),
+    apellidoMaterno: document.getElementById('ns-apellido-materno').value.trim(),
+    numeroCuenta: document.getElementById('ns-numero-cuenta').value.trim(),
+    anioNacimiento: Number(document.getElementById('ns-anio').value),
+    mesNacimiento: Number(document.getElementById('ns-mes').value),
+    diaNacimiento: Number(document.getElementById('ns-dia').value),
+    usuario: document.getElementById('ns-usuario').value.trim(),
+    contrasena: document.getElementById('ns-contrasena').value
+  };
+  const res = await fetch('/api/admin/alumnos', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'No se pudo registrar al alumno.'); return; }
+  closeModal('modal-new-student');
+  cargarAlumnos();
+}
+
+// ===== Restablecer contraseña (profesor o alumno que la olvidó) =====
+let resetPwTarget = null; // { tipo: 'profesor' | 'alumno', id, usuario }
+
+function abrirResetPassword(tipo, id, usuario) {
+  resetPwTarget = { tipo, id, usuario };
+  document.getElementById('reset-pw-usuario').textContent = usuario;
+  document.getElementById('reset-pw-nueva').value = '';
+  document.getElementById('reset-pw-confirmar').value = '';
+  updateResetPwRules();
+  openModal('modal-reset-password');
+}
+
+function updateResetPwRules() {
+  const pw = document.getElementById('reset-pw-nueva').value;
+  let allOk = true;
+  Object.keys(pwRules).forEach(key => {
+    const el = document.querySelector(`#reset-pw-rules .rule[data-rule="${key}"]`);
+    const ok = pwRules[key](pw);
+    if (!ok) allOk = false;
+    el.classList.toggle('ok', ok);
+    el.querySelector('.mark').textContent = ok ? '✓' : '○';
+  });
+  return allOk;
+}
+document.addEventListener('input', (e) => { if (e.target.id === 'reset-pw-nueva') updateResetPwRules(); });
+
+async function confirmarResetPassword() {
+  if (!resetPwTarget) return;
+  if (!updateResetPwRules()) { alert('La contraseña no cumple los requisitos mínimos.'); return; }
+  const nueva = document.getElementById('reset-pw-nueva').value;
+  const confirmar = document.getElementById('reset-pw-confirmar').value;
+  if (nueva !== confirmar) { alert('Las contraseñas no coinciden.'); return; }
+
+  const url = resetPwTarget.tipo === 'profesor'
+    ? `/api/admin/profesores/${resetPwTarget.id}/contrasena`
+    : `/api/admin/alumnos/${resetPwTarget.id}/contrasena`;
+  const res = await fetch(url, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contrasena: nueva })
+  });
+  const data = await res.json();
+  if (!res.ok) { showMsg(data.error || 'No se pudo cambiar la contraseña.', 'error'); return; }
+  showMsg(`Contraseña de "${resetPwTarget.usuario}" actualizada.`, 'success');
+  closeModal('modal-reset-password');
+}
+
+async function cargarClases() {
+  const res = await fetch('/api/admin/clases');
+  const data = await res.json();
+  const tbody = document.getElementById('clases-tbody');
+  if (!data.clases || data.clases.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Aún no hay clases creadas.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.clases.map(c => `
+    <tr>
+      <td>${escapeHtml(c.nombre)}</td>
+      <td>${escapeHtml(c.profesor_nombre)} ${escapeHtml(c.profesor_apellido)}</td>
+      <td>${c.total_alumnos}</td>
+      <td><span class="pill pill-${c.estado === 'activa' ? 'activo' : 'inactivo'}">${c.estado}</span></td>
+    </tr>
+  `).join('');
+}
+
+async function cargarInscripciones() {
+  const res = await fetch('/api/admin/inscripciones');
+  const data = await res.json();
+  const tbody = document.getElementById('inscripciones-tbody');
+  if (!data.inscripciones || data.inscripciones.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Aún no hay inscripciones.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.inscripciones.map(i => `
+    <tr>
+      <td>${escapeHtml(i.alumno_nombre)} ${escapeHtml(i.alumno_apellido)}</td>
+      <td>${escapeHtml(i.clase_nombre)}</td>
+      <td>${escapeHtml(i.profesor_nombre)} ${escapeHtml(i.profesor_apellido)}</td>
+      <td>${new Date(i.inscrito_en).toLocaleString()}</td>
+    </tr>
+  `).join('');
+}
+
+async function cargarCalificaciones() {
+  const res = await fetch('/api/admin/calificaciones');
+  const data = await res.json();
+  const tbody = document.getElementById('calificaciones-tbody');
+  if (!data.calificaciones || data.calificaciones.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aún no hay calificaciones registradas.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.calificaciones.map(c => `
+    <tr>
+      <td>${escapeHtml(c.alumno_nombre)} ${escapeHtml(c.alumno_apellido)}</td>
+      <td>${escapeHtml(c.clase_nombre)}</td>
+      <td>${escapeHtml(c.entregable_nombre)}</td>
+      <td>${Number(c.calificacion).toFixed(1)}</td>
+      <td><span class="pill pill-${c.origen}">${c.origen}</span></td>
+      <td>${new Date(c.actualizado_en).toLocaleString()}</td>
+    </tr>
+  `).join('');
+}
+</script>
+</body>
+</html>
