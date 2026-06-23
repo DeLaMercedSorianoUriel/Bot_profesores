@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+
+# Secretos y credenciales reales (claves de API, contraseña de PostgreSQL, etc.)
+.env
+.env.*
+admin.txt
+
+# Datos reales de alumnos/profesores (conversaciones de chat guardadas)
+chat_logs/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
