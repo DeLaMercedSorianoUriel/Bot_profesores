@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutor Académico</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #121212;
+            color: #00ff88;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        
+        
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            100% { opacity: 0.7; }
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 800px;
+            padding: 40px;
+        }
+        
+        /* Terminal principal */
+        .main-terminal {
+            background: rgba(0,0,0,0.85);
+            border: 3px solid #00ff88;
+            border-radius: 15px;
+            padding: 30px;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 40px;
+           
+            backdrop-filter: blur(10px);
+        }
+        
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0,255,136,0.3);
+        }
+        
+        .terminal-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .terminal-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            box-shadow: 0 0 5px currentColor;
+        }
+        
+        .dot-red { 
+            background: #ff5f56; 
+            color: #ff5f56;
+        }
+        .dot-yellow { 
+            background: #ffbd2e; 
+            color: #ffbd2e;
+        }
+        .dot-green { 
+            background: #27ca3f; 
+            color: #27ca3f;
+        }
+        
+        .terminal-title {
+            color: #00ff88;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .terminal-content {
+            text-align: left;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #00ff88;
+        }
+        
+        .prompt-line {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .prompt {
+            color: #4285f4;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .command {
+            color: #00ff88;
+            text-shadow: 0 0 5px currentColor;
+        }
+        
+        .output {
+            color: #27ca3f;
+            margin-left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-check {
+            color: #27ca3f;
+            font-size: 18px;
+            animation: checkmark 0.5s ease-in-out;
+        }
+        
+        @keyframes checkmark {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .cursor {
+            background: #00ff88;
+            width: 12px;
+            height: 20px;
+            display: inline-block;
+            animation: blink 1s infinite;
+            margin-left: 5px;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        /* Título principal con efecto de brillo */
+        .main-title {
+            font-size: 4rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: #ffff;
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 3px;
+        }
+        
+        @keyframes glow {
+            from { 
+                filter: drop-shadow(0 0 20px rgba(0,255,136,0.7)); 
+            }
+            to { 
+                filter: drop-shadow(0 0 40px rgba(0,255,136,1)); 
+            }
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            color: #4285f4;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px rgba(66,133,244,0.5);
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        
+        /* Botones de selección de rol */
+        .role-selection {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+        
+        .role-button {
+            background: rgba(0,0,0,0.8);
+            border: 2px solid;
+            padding: 20px 40px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .role-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .role-button:hover::before {
+            left: 100%;
+        }
+        
+        .professor-btn {
+            border-color: #4285f4;
+            color: #4285f4;
+            box-shadow: 0 0 20px rgba(66,133,244,0.3);
+        }
+
+        .professor-btn:hover {
+            background: rgba(66,133,244,0.1);
+            box-shadow: 0 0 30px rgba(66,133,244,0.6);
+            transform: translateY(-5px);
+        }
+
+        .student-btn {
+            border-color: #00ff88;
+            color: #00ff88;
+            box-shadow: 0 0 20px rgba(0,255,136,0.3);
+        }
+
+        .student-btn:hover {
+            background: rgba(0,255,136,0.1);
+            box-shadow: 0 0 30px rgba(0,255,136,0.6);
+            transform: translateY(-5px);
+        }
+
+
+        
+        /* Partículas flotantes */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: float 6s infinite linear;
+            opacity: 0.7;
+            box-shadow: 0 0 6px currentColor;
+        }
+        
+
+        
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.7;
+            }
+            90% {
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(-10vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-title {
+                font-size: 2.5rem;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            .main-terminal {
+                padding: 20px;
+            }
+            
+            .role-selection {
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+            }
+            
+            .role-button {
+                min-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Partículas flotantes -->
+    <div class="particles">
+        <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+        <div class="particle" style="left: 20%; animation-delay: 1s;"></div>
+        <div class="particle" style="left: 30%; animation-delay: 2s;"></div>
+        <div class="particle" style="left: 40%; animation-delay: 3s;"></div>
+        <div class="particle" style="left: 50%; animation-delay: 4s;"></div>
+        <div class="particle" style="left: 60%; animation-delay: 5s;"></div>
+        <div class="particle" style="left: 70%; animation-delay: 6s;"></div>
+        <div class="particle" style="left: 80%; animation-delay: 7s;"></div>
+        <div class="particle" style="left: 90%; animation-delay: 8s;"></div>
+    </div>
+    
+    <div class="container">
+        <!-- Terminal principal -->
+        <div class="main-terminal">
+            <div class="terminal-header">
+                <div class="terminal-controls">
+                    <div class="terminal-dot dot-red"></div>
+                    <div class="terminal-dot dot-yellow"></div>
+                    <div class="terminal-dot dot-green"></div>
+                </div>
+                <div class="terminal-title">tutor_academico.exe</div>
+            </div>
+            <div class="terminal-text">
+                                > Iniciando Tutor Académico IA...<br>
+                                > Conexión establecida ✓<br>
+                                > Sistema educativo listo
+            </div>
+        </div>
+        
+        <!-- Título principal -->
+        <h1 class="main-title">TUTOR ACADÉMICO</h1>
+        <p class="subtitle">Sistema de Inteligencia Artificial Educativa</p>
+        
+        <!-- Selección de rol -->
+        <div class="role-selection">
+            <button class="role-button professor-btn" onclick="window.location.href='/login-profesor.html'">
+                👨‍🏫 PROFESOR
+            </button>
+            <button class="role-button student-btn" onclick="window.location.href='/login-alumno.html'">
+                🎓 ALUMNO
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // Animación adicional de partículas dinámicas
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = '0s';
+            particle.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            
+            const colors = ['#00ff88', '#4285f4', '#ea4335', '#fbbc04'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.background = color;
+            particle.style.color = color;
+            
+            document.querySelector('.particles').appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, 10000);
+        }
+        
+        // Crear partículas cada 2 segundos
+        setInterval(createParticle, 2000);
+        
+        // Efectos de hover en botones
+        document.querySelectorAll('.role-button').forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px) scale(1.05)';
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>

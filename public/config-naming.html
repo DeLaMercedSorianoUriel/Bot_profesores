@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuración de Nombrado</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --text: #ffffff;
+      --surface: #2c2c2c;
+      --border: #555;
+      --btn-bg: #333;
+      --btn-hover: #555;
+      --accent: #90ee90;
+      --nav-link: #8ab4f8;
+    }
+    [data-theme="light"] {
+      --bg: #f4f4f6;
+      --text: #1a1a1a;
+      --surface: #ffffff;
+      --border: #ccc;
+      --btn-bg: #667eea;
+      --btn-hover: #5568d3;
+      --accent: #2e7d32;
+      --nav-link: #3457d5;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* Línea de redirección/navegación, siempre hasta arriba en su propia línea */
+    nav.top-nav {
+      display: block;
+      width: 100%;
+      padding: 14px 0;
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav.top-nav a {
+      color: var(--nav-link);
+      text-decoration: none;
+      margin: 0 10px;
+      font-weight: 600;
+    }
+
+    nav.top-nav a:hover {
+      text-decoration: underline;
+    }
+
+    #theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 999;
+    }
+
+    h1 {
+      margin-top: 30px;
+    }
+
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 90%;
+      max-width: 800px;
+      margin: 20px auto;
+    }
+    .options {
+      text-align: left;
+      margin: 20px 0;
+    }
+    .option {
+      margin: 10px 0;
+    }
+    select, input {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      color: var(--text);
+      width: 100%;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: var(--btn-bg);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: var(--btn-hover);
+    }
+    #preview {
+      margin-top: 20px;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <!-- Redirección: siempre en su propia línea, hasta arriba -->
+  <nav class="top-nav">
+    <a href="/profe.html">Configurar Prompt</a> |
+    <a href="/config-naming.html">Configurar Nombrado</a>
+  </nav>
+
+  <button id="theme-toggle" onclick="toggleTheme()">☀️ Claro</button>
+
+  <h1>Configuración de Nombrado</h1>
+  <div class="input-container">
+    <h2>Criterios de Nombrado</h2>
+    <p>Selecciona los criterios que los alumnos deberán proporcionar. Estos se usarán para nombrar los archivos de chat.</p>
+    <div class="options">
+      <div class="option"><input type="checkbox" name="fields" value="nombre"> Nombre</div>
+      <div class="option"><input type="checkbox" name="fields" value="grupo"> Grupo</div>
+      <div class="option"><input type="checkbox" name="fields" value="numeroLista"> Número de Lista</div>
+      <div class="option"><input type="checkbox" name="fields" value="asignatura"> Asignatura</div>
+      <div class="option"><input type="checkbox" name="fields" value="otro"> Otro</div>
+      <div id="custom-fields" style="display: none;">
+        <input type="text" id="custom-field" placeholder="Ingresa criterio personalizado">
+        <button onclick="addCustomField()">Agregar</button>
+      </div>
+    </div>
+    <select id="order" multiple>
+      <option value="nombre">Nombre</option>
+      <option value="grupo">Grupo</option>
+      <option value="numeroLista">Número de Lista</option>
+      <option value="asignatura">Asignatura</option>
+    </select>
+    <label for="customFormat">Formato Personalizado (opcional):</label>
+    <input type="text" id="customFormat" placeholder="Ejemplo: [nombre]_[grupo]">
+    <button onclick="saveCriteria()">Guardar</button>
+    <div id="preview">Vista previa: (Selecciona criterios para ver el ejemplo)</div>
+  </div>
+
+  <script>
+    // Modo oscuro/claro persistente entre páginas
+    (function () {
+      const saved = localStorage.getItem('botTheme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('botTheme', next);
+      document.getElementById('theme-toggle').textContent = next === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    });
+
+    const fields = [];
+    document.querySelectorAll('input[name="fields"]').forEach(checkbox => {
+      checkbox.addEventListener('change', updatePreview);
+      if (checkbox.value === 'otro') {
+        checkbox.addEventListener('change', () => {
+          document.getElementById('custom-fields').style.display = checkbox.checked ? 'block' : 'none';
+        });
+      }
+    });
+
+    function addCustomField() {
+      const customField = document.getElementById('custom-field').value.trim();
+      if (customField && !fields.includes(customField)) {
+        fields.push(customField);
+        document.getElementById('order').innerHTML += `<option value="${customField}">${customField}</option>`;
+        document.getElementById('custom-field').value = '';
+        updatePreview();
+      }
+    }
+
+    function updatePreview() {
+      const selectedFields = Array.from(document.querySelectorAll('input[name="fields"]:checked'))
+        .map(cb => cb.value === 'otro' ? fields : cb.value)
+        .flat()
+        .filter(f => f);
+      const order = Array.from(document.getElementById('order').selectedOptions).map(opt => opt.value);
+      const customFormat = document.getElementById('customFormat').value || selectedFields.join('_');
+      const example = {
+        nombre: 'Uriel Benjamin De La Merced',
+        grupo: 'GrupoA',
+        numeroLista: '123',
+        asignatura: 'IA'
+      };
+      const preview = customFormat.replace(/\[([^\]]+)\]/g, (match, key) => {
+        return example[key] ? example[key].replace(/\s+/g, '') : `[${key}]`;
+      });
+      document.getElementById('preview').textContent = `Vista previa: ${preview || '(Selecciona criterios para ver el ejemplo)'}`;
+    }
+
+    function saveCriteria() {
+      const selectedFields = Array.from(document.querySelectorAll('input[name="fields"]:checked'))
+        .map(cb => cb.value === 'otro' ? fields : cb.value)
+        .flat()
+        .filter(f => f);
+      const order = Array.from(document.getElementById('order').selectedOptions).map(opt => opt.value);
+      const customFormat = document.getElementById('customFormat').value;
+      fetch('/save-naming-criteria', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: selectedFields, order, customFormat })
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message);
+        window.location.href = '/profe.html';
+      })
+      .catch(error => console.error('Error:', error));
+    }
+
+    // Actualizar vista previa inicial
+    updatePreview();
+  </script>
+</body>
+</html>

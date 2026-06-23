@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Alumno · Tutor Académico</title>
+<style>
+  :root {
+    --bg-grad-a: #11998e;
+    --bg-grad-b: #38ef7d;
+    --card-bg: #ffffff;
+    --card-text: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --input-bg: #f5f6fa;
+    --accent: #11998e;
+  }
+  [data-theme="light"] {
+    --bg-grad-a: #84fab0;
+    --bg-grad-b: #8fd3f4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, var(--bg-grad-a), var(--bg-grad-b));
+    background-size: 200% 200%;
+    animation: gradientShift 12s ease infinite;
+    padding: 30px 20px;
+  }
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  #theme-toggle {
+    position: fixed; top: 16px; right: 16px;
+    padding: 8px 14px; border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.6);
+    background-color: rgba(255,255,255,0.2);
+    color: #fff; cursor: pointer; font-size: 14px;
+    backdrop-filter: blur(6px); z-index: 999;
+  }
+  .back-link {
+    position: fixed; top: 16px; left: 16px;
+    color: #fff; text-decoration: none; font-size: 14px;
+    background: rgba(255,255,255,0.2);
+    padding: 8px 14px; border-radius: 20px;
+    backdrop-filter: blur(6px);
+  }
+  .card {
+    background: var(--card-bg);
+    color: var(--card-text);
+    width: 100%;
+    max-width: 520px;
+    border-radius: 24px;
+    padding: 40px 36px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .card .header { text-align: center; margin-bottom: 24px; }
+  .card .icon { font-size: 42px; margin-bottom: 8px; }
+  .card h1 { font-size: 22px; margin: 0 0 4px; }
+  .card p.subtitle { color: var(--muted); font-size: 14px; margin: 0; }
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  .field { text-align: left; margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+  .field input {
+    width: 100%; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--input-bg);
+    color: var(--card-text); font-size: 14px;
+  }
+  .field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .password-rules {
+    background: var(--input-bg);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: -2px 0 16px;
+    font-size: 13px;
+  }
+  .password-rules .rule { display: flex; align-items: center; gap: 8px; padding: 2px 0; color: var(--muted); }
+  .password-rules .rule.ok { color: #0d9c4a; font-weight: 600; }
+  .password-rules .rule .mark { width: 16px; display: inline-block; }
+  button.submit-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 999px;
+    background: linear-gradient(135deg, var(--bg-grad-a), var(--bg-grad-b));
+    color: #08372f; font-size: 16px; font-weight: 700; cursor: pointer;
+    margin-top: 8px; transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  button.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .alt-link { margin-top: 20px; font-size: 14px; color: var(--muted); text-align: center; }
+  .alt-link a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .error-box, .success-box {
+    display: none; border-radius: 10px; padding: 10px 14px;
+    font-size: 13px; margin-bottom: 16px; text-align: left;
+  }
+  .error-box { background: #fde8e8; color: #b91c1c; }
+  .success-box { background: #e6f9ed; color: #0d7d3c; }
+  .error-box.show, .success-box.show { display: block; }
+  .pw-field { position: relative; }
+  .pw-field input { padding-right: 44px; }
+  .pw-toggle {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; font-size: 17px; padding: 6px; line-height: 1;
+  }
+</style>
+</head>
+<body>
+  <a class="back-link" href="/presenta.html">← Inicio</a>
+  <button id="theme-toggle" onclick="toggleTheme()">☀️ Claro</button>
+
+  <div class="card">
+    <div class="header">
+      <div class="icon">🎓</div>
+      <h1>Registro de Alumno</h1>
+      <p class="subtitle">Crea tu cuenta; tu profesor te matriculará después en su clase</p>
+    </div>
+
+    <div id="error-box" class="error-box"></div>
+    <div id="success-box" class="success-box"></div>
+
+    <form id="registro-form">
+      <div class="row">
+        <div class="field">
+          <label for="nombre">Nombre *</label>
+          <input type="text" id="nombre" required>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="apellidoPaterno">Apellido paterno *</label>
+          <input type="text" id="apellidoPaterno" required>
+        </div>
+        <div class="field">
+          <label for="apellidoMaterno">Apellido materno</label>
+          <input type="text" id="apellidoMaterno">
+        </div>
+      </div>
+      <div class="field">
+        <label for="numeroCuenta">Número de cuenta *</label>
+        <input type="text" id="numeroCuenta" required>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="anioNacimiento">Año de nacimiento *</label>
+          <input type="number" id="anioNacimiento" min="1900" max="2100" required>
+        </div>
+        <div class="field">
+          <label for="mesNacimiento">Mes *</label>
+          <input type="number" id="mesNacimiento" min="1" max="12" required>
+        </div>
+        <div class="field">
+          <label for="diaNacimiento">Día *</label>
+          <input type="number" id="diaNacimiento" min="1" max="31" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="usuario">Usuario *</label>
+        <input type="text" id="usuario" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="contrasena">Contraseña *</label>
+        <div class="pw-field">
+          <input type="password" id="contrasena" autocomplete="new-password" required>
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('contrasena', this)">👁️</button>
+        </div>
+      </div>
+      <div class="password-rules" id="password-rules">
+        <div class="rule" data-rule="length"><span class="mark">○</span> Al menos 8 caracteres</div>
+        <div class="rule" data-rule="upper"><span class="mark">○</span> Al menos una letra mayúscula</div>
+        <div class="rule" data-rule="lower"><span class="mark">○</span> Al menos una letra minúscula</div>
+        <div class="rule" data-rule="number"><span class="mark">○</span> Al menos un número</div>
+        <div class="rule" data-rule="symbol"><span class="mark">○</span> Al menos un símbolo (!@#$%...)</div>
+      </div>
+      <div class="field">
+        <label for="confirmarContrasena">Confirmar contraseña *</label>
+        <div class="pw-field">
+          <input type="password" id="confirmarContrasena" autocomplete="new-password" required>
+          <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('confirmarContrasena', this)">👁️</button>
+        </div>
+      </div>
+      <button type="submit" class="submit-btn">Crear mi cuenta</button>
+    </form>
+
+    <div class="alt-link">
+      ¿Ya tienes cuenta? <a href="/login-alumno.html">Inicia sesión aquí</a>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const saved = localStorage.getItem('botTheme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('botTheme', next);
+      document.getElementById('theme-toggle').textContent = next === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    });
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁️';
+    }
+
+    const rules = {
+      length: pw => pw.length >= 8,
+      upper: pw => /[A-Z]/.test(pw),
+      lower: pw => /[a-z]/.test(pw),
+      number: pw => /[0-9]/.test(pw),
+      symbol: pw => /[^A-Za-z0-9]/.test(pw)
+    };
+
+    function updatePasswordRules() {
+      const pw = document.getElementById('contrasena').value;
+      let allOk = true;
+      Object.keys(rules).forEach(key => {
+        const el = document.querySelector(`.rule[data-rule="${key}"]`);
+        const ok = rules[key](pw);
+        if (!ok) allOk = false;
+        el.classList.toggle('ok', ok);
+        el.querySelector('.mark').textContent = ok ? '✓' : '○';
+      });
+      return allOk;
+    }
+    document.getElementById('contrasena').addEventListener('input', updatePasswordRules);
+
+    document.getElementById('registro-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorBox = document.getElementById('error-box');
+      const successBox = document.getElementById('success-box');
+      errorBox.classList.remove('show');
+      successBox.classList.remove('show');
+
+      const contrasena = document.getElementById('contrasena').value;
+      const confirmar = document.getElementById('confirmarContrasena').value;
+
+      if (!updatePasswordRules()) {
+        errorBox.textContent = 'La contraseña no cumple los requisitos mínimos de seguridad.';
+        errorBox.classList.add('show');
+        return;
+      }
+      if (contrasena !== confirmar) {
+        errorBox.textContent = 'Las contraseñas no coinciden.';
+        errorBox.classList.add('show');
+        return;
+      }
+
+      const payload = {
+        nombre: document.getElementById('nombre').value.trim(),
+        apellidoPaterno: document.getElementById('apellidoPaterno').value.trim(),
+        apellidoMaterno: document.getElementById('apellidoMaterno').value.trim(),
+        numeroCuenta: document.getElementById('numeroCuenta').value.trim(),
+        anioNacimiento: Number(document.getElementById('anioNacimiento').value),
+        mesNacimiento: Number(document.getElementById('mesNacimiento').value),
+        diaNacimiento: Number(document.getElementById('diaNacimiento').value),
+        usuario: document.getElementById('usuario').value.trim(),
+        contrasena
+      };
+
+      try {
+        const res = await fetch('/api/alumno/registro', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errorBox.textContent = data.error || 'No se pudo crear la cuenta.';
+          errorBox.classList.add('show');
+          return;
+        }
+        successBox.textContent = '¡Cuenta creada! Redirigiendo a tu panel...';
+        successBox.classList.add('show');
+        setTimeout(() => window.location.href = '/alumno-dashboard.html', 1000);
+      } catch (err) {
+        errorBox.textContent = 'Error de conexión. Intenta de nuevo.';
+        errorBox.classList.add('show');
+      }
+    });
+  </script>
+</body>
+</html>

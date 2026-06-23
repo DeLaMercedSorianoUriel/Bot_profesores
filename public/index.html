@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot Académico</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0d1117;
+      --text: #ffffff;
+      --bubble-bot-bg: #1f2937;
+      --bubble-bot-text: #e5e7eb;
+      --bubble-bot-border: #30363d;
+      --bubble-analyzer-bg: #2d3748;
+      --input-bar-bg: #161b22;
+      --input-box-bg: #0d1117;
+      --border: #30363d;
+      --panel-text: #d1d5db;
+      --typing-dot: #9ca3af;
+    }
+
+    [data-theme="light"] {
+      --bg: #f4f4f6;
+      --text: #1a1a1a;
+      --bubble-bot-bg: #e9ecf3;
+      --bubble-bot-text: #1a1a1a;
+      --bubble-bot-border: #d0d3da;
+      --bubble-analyzer-bg: #fff3cd;
+      --input-bar-bg: #ffffff;
+      --input-box-bg: #f4f4f6;
+      --border: #d0d3da;
+      --panel-text: #333333;
+      --typing-dot: #6b7280;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    #theme-toggle {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background-color: var(--input-bar-bg);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 1002;
+    }
+
+    /* Encabezado del chat */
+    #chat-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    #chat-header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    /* Área de mensajes - ocupa todo el espacio disponible */
+    #chat-box {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background-color: var(--bg);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Scrollbar personalizado */
+    #chat-box::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #chat-box::-webkit-scrollbar-track {
+      background: #161b22;
+    }
+
+    #chat-box::-webkit-scrollbar-thumb {
+      background: #30363d;
+      border-radius: 4px;
+    }
+
+    #chat-box::-webkit-scrollbar-thumb:hover {
+      background: #484f58;
+    }
+
+    /* Burbujas de mensajes estilo WhatsApp */
+    .message {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      word-wrap: break-word;
+      line-height: 1.4;
+      animation: fadeIn 0.3s ease-in;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Mensajes del usuario - derecha, estilo WhatsApp */
+    .message.user {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+      margin-left: auto;
+    }
+
+    /* Mensajes del bot - izquierda, estilo WhatsApp */
+    .message.bot {
+      background-color: var(--bubble-bot-bg);
+      color: var(--bubble-bot-text);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      border: 1px solid var(--bubble-bot-border);
+    }
+
+    /* Mensaje del analizador */
+    .message.analyzer {
+      background-color: var(--bubble-analyzer-bg);
+      color: #b45309;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      border: 2px solid #fbbf24;
+    }
+
+    [data-theme="dark"] .message.analyzer {
+      color: #fbbf24;
+    }
+
+    /* Indicador de "escribiendo..." */
+    .message.typing {
+      background-color: var(--bubble-bot-bg);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      border: 1px solid var(--bubble-bot-border);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 14px 18px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--typing-dot);
+      animation: typingBounce 1.2s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* Mensaje de tarea completada */
+    .message.task-completed {
+      background-color: #065f46;
+      color: #d1fae5;
+      align-self: center;
+      text-align: center;
+      border-radius: 12px;
+      font-weight: 600;
+      padding: 14px 24px;
+      max-width: 80%;
+      font-size: 15px;
+    }
+
+    /* Contenedor de entrada - FIJO en la parte inferior */
+    #input-container {
+      display: flex;
+      gap: 12px;
+      padding: 20px;
+      background-color: var(--input-bar-bg);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    #input-box {
+      flex: 1;
+      padding: 14px 20px;
+      font-size: 15px;
+      border-radius: 25px;
+      border: 1px solid var(--border);
+      background-color: var(--input-box-bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+
+    #input-box:focus {
+      border-color: #667eea;
+    }
+
+    #send-btn {
+      padding: 14px 28px;
+      font-size: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    #send-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.6);
+    }
+
+    #send-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Botón flotante para abrir/cerrar el panel del analizador.
+       Se ubica arriba (debajo del encabezado) para no interferir con la barra de envío de mensajes. */
+    #toggle-analyzer-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.5);
+      z-index: 1001;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #toggle-analyzer-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.7);
+    }
+
+    #toggle-analyzer-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Panel del analizador - VENTANA EMERGENTE (se despliega hacia abajo desde el botón de arriba) */
+    #validation-panel {
+      position: fixed;
+      top: 82px;
+      right: 16px;
+      width: 380px;
+      background-color: var(--bubble-bot-bg);
+      border: 2px solid #667eea;
+      border-radius: 16px;
+      padding: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      opacity: 0;
+    }
+
+    #validation-panel.show {
+      max-height: 300px;
+      padding: 20px;
+      opacity: 1;
+    }
+
+    #validation-panel p {
+      margin: 8px 0;
+      font-size: 14px;
+      color: var(--panel-text);
+      line-height: 1.5;
+    }
+
+    #validation-panel strong {
+      color: var(--text);
+      font-size: 16px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .validation-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .approve-btn, .reject-btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .approve-btn {
+      background-color: #059669;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
+    }
+
+    .approve-btn:hover {
+      background-color: #047857;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.6);
+    }
+
+    .reject-btn {
+      background-color: #dc2626;
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+    }
+
+    .reject-btn:hover {
+      background-color: #b91c1c;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.6);
+    }
+
+    .analyzer-help {
+      color: #fbbf24;
+      font-style: italic;
+      margin-top: 12px;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .analyzer-request {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .analyzer-request-btn {
+      width: 100%;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 10px;
+      background-color: #f59e0b;
+      color: #1a1a1a;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    #analyzer-password-box {
+      display: none;
+      margin-top: 10px;
+      gap: 8px;
+      flex-direction: column;
+    }
+
+    #analyzer-password-input {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background-color: var(--input-box-bg);
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    #analyzer-password-submit {
+      padding: 9px 12px;
+      border: none;
+      border-radius: 8px;
+      background-color: #059669;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .analyzer-password-error {
+      color: #dc2626;
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      #toggle-analyzer-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+        top: 12px;
+        right: 12px;
+      }
+
+      #theme-toggle {
+        top: 12px;
+        left: 12px;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      #validation-panel {
+        width: calc(100vw - 30px);
+        right: 15px;
+        left: 15px;
+        top: 70px;
+      }
+
+      .message {
+        max-width: 85%;
+      }
+
+      #chat-header h1 {
+        font-size: 20px;
+      }
+
+      #input-container {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Encabezado -->
+  <div id="chat-header">
+    <h1>🤖 Chatbot Académico</h1>
+  </div>
+
+  <!-- Modo oscuro/claro -->
+  <button id="theme-toggle" onclick="toggleTheme()">☀️ Claro</button>
+
+  <!-- Área de mensajes - pantalla completa -->
+  <div id="chat-box"></div>
+
+  <!-- Botón flotante para abrir/cerrar el panel del analizador (arriba, no interfiere con el envío de mensajes) -->
+  <button id="toggle-analyzer-btn" onclick="toggleAnalyzerPanel()" title="Abrir/Cerrar Panel del Analizador">
+    📋
+  </button>
+
+  <!-- Panel del analizador - ventana emergente flotante -->
+  <div id="validation-panel">
+    <strong>¿La respuesta del bot es correcta?</strong>
+    <p>Si la respuesta cumple con lo solicitado, apruébala para continuar. Si no, puedes proporcionar más detalles.</p>
+    <div class="validation-buttons">
+      <button class="approve-btn" onclick="approveResponse()">✓ Correcto</button>
+      <button class="reject-btn" onclick="rejectResponse()">✗ Ajustar</button>
+    </div>
+    <div class="analyzer-request">
+      <button class="analyzer-request-btn" onclick="toggleAnalyzerPasswordBox()">🔐 Solicitar ayuda del analizador</button>
+      <div id="analyzer-password-box">
+        <input type="password" id="analyzer-password-input" placeholder="Contraseña del analizador (la define tu profesor)">
+        <button id="analyzer-password-submit" onclick="solicitarAyudaAnalizador()">Verificar y solicitar</button>
+        <p class="analyzer-password-error" id="analyzer-password-error"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de entrada - FIJA en la parte inferior -->
+  <div id="input-container">
+    <input type="text" id="input-box" placeholder="Escribe tu mensaje...">
+    <button id="send-btn" onclick="sendMessage()">Enviar</button>
+  </div>
+
+  <script>
+    let awaitingValidation = false;
+    let analyzerPanelOpen = false;
+
+    // Modo oscuro/claro persistente entre páginas
+    (function () {
+      const saved = localStorage.getItem('botTheme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('botTheme', next);
+      document.getElementById('theme-toggle').textContent = next === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙 Oscuro' : '☀️ Claro';
+    });
+
+    // Función para agregar mensaje al chat con burbujas estilo WhatsApp
+    function addMessage(text, type) {
+      const chatBox = document.getElementById('chat-box');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}`;
+      messageDiv.innerHTML = text;
+      chatBox.appendChild(messageDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Indicador de "pensando..." mientras se espera la respuesta del bot
+    function showTypingIndicator() {
+      const chatBox = document.getElementById('chat-box');
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'message typing';
+      typingDiv.id = 'typing-indicator';
+      typingDiv.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+      chatBox.appendChild(typingDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      const typingDiv = document.getElementById('typing-indicator');
+      if (typingDiv) typingDiv.remove();
+    }
+
+    // Obtener la respuesta inicial del bot al cargar la página
+    window.onload = async () => {
+      showTypingIndicator();
+      const response = await fetch('/initial-message', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      hideTypingIndicator();
+      if (data.response) {
+        addMessage(data.response, 'bot');
+        
+        // NO abrir automáticamente el panel, solo marcar que hay validación pendiente
+        if (data.needsApproval) {
+          awaitingValidation = true;
+          // Opcional: cambiar el ícono del botón para indicar que hay algo pendiente
+          document.getElementById('toggle-analyzer-btn').innerHTML = '📋 <span style="position:absolute;top:0;right:0;width:12px;height:12px;background:red;border-radius:50%;"></span>';
+        }
+      }
+    };
+
+    // Función para alternar (toggle) el panel del analizador manualmente
+    function toggleAnalyzerPanel() {
+      const panel = document.getElementById('validation-panel');
+      const btn = document.getElementById('toggle-analyzer-btn');
+      
+      analyzerPanelOpen = !analyzerPanelOpen;
+      
+      if (analyzerPanelOpen) {
+        panel.classList.add('show');
+        btn.textContent = '✕';
+      } else {
+        panel.classList.remove('show');
+        btn.innerHTML = awaitingValidation ? '📋 <span style="position:absolute;top:0;right:0;width:12px;height:12px;background:red;border-radius:50%;"></span>' : '📋';
+      }
+    }
+
+    // Mostrar panel de validación (ya no se usa automáticamente)
+    function showValidationPanel() {
+      // Esta función ya no abre automáticamente, solo marca como pendiente
+      awaitingValidation = true;
+      if (!analyzerPanelOpen) {
+        document.getElementById('toggle-analyzer-btn').innerHTML = '📋 <span style="position:absolute;top:0;right:0;width:12px;height:12px;background:red;border-radius:50%;"></span>';
+      }
+    }
+
+    // Ocultar panel de validación
+    function hideValidationPanel() {
+      awaitingValidation = false;
+      document.getElementById('toggle-analyzer-btn').textContent = '📋';
+    }
+
+    // Aprobar respuesta
+    async function approveResponse() {
+      hideValidationPanel();
+      addMessage('✓ Correcto, continuar', 'user');
+
+      // Enviar aprobación al servidor
+      showTypingIndicator();
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'correcto, continuar' })
+      });
+      const data = await response.json();
+      hideTypingIndicator();
+
+      // Mostrar respuesta del bot
+      if (data.taskCompleted) {
+        addMessage('✓ ' + data.response, 'task-completed');
+      } else {
+        addMessage(data.response, 'bot');
+        // Solo marcar como pendiente, NO abrir automáticamente
+        if (data.needsApproval) {
+          showValidationPanel();
+        }
+      }
+    }
+
+    // Rechazar respuesta
+    function rejectResponse() {
+      hideValidationPanel();
+      addMessage('✗ Necesita ajustes', 'user');
+      addMessage('Por favor, proporciona más detalles sobre lo que necesitas ajustar.', 'bot');
+    }
+
+    // Mostrar/ocultar el campo para ingresar la contraseña del analizador
+    function toggleAnalyzerPasswordBox() {
+      const box = document.getElementById('analyzer-password-box');
+      const isOpen = box.style.display === 'flex';
+      box.style.display = isOpen ? 'none' : 'flex';
+      document.getElementById('analyzer-password-error').style.display = 'none';
+      if (!isOpen) document.getElementById('analyzer-password-input').focus();
+    }
+
+    // El analizador solo se activa con la contraseña que el profesor definió de antemano:
+    // el alumno la ingresa manualmente cada vez que necesita ayuda, y se verifica contra la base de datos.
+    async function solicitarAyudaAnalizador() {
+      const pwInput = document.getElementById('analyzer-password-input');
+      const errorEl = document.getElementById('analyzer-password-error');
+      const contrasena = pwInput.value;
+      errorEl.style.display = 'none';
+      if (!contrasena) {
+        errorEl.textContent = 'Ingresa la contraseña del analizador.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      showTypingIndicator();
+      const response = await fetch('/api/analizador/solicitar-ayuda', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contrasena })
+      });
+      const data = await response.json();
+      hideTypingIndicator();
+
+      if (!response.ok) {
+        errorEl.textContent = data.error || 'No se pudo solicitar ayuda del analizador.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      pwInput.value = '';
+      document.getElementById('analyzer-password-box').style.display = 'none';
+      addMessage(data.response, 'analyzer');
+    }
+
+    document.getElementById('analyzer-password-input')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') solicitarAyudaAnalizador();
+    });
+
+    // Enviar mensaje del usuario
+    async function sendMessage() {
+      const inputBox = document.getElementById('input-box');
+      const message = inputBox.value.trim();
+      if (!message) return;
+
+      // Mostrar mensaje del usuario
+      addMessage(message, 'user');
+      inputBox.value = '';
+
+      // Enviar mensaje al servidor
+      showTypingIndicator();
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+      const data = await response.json();
+      hideTypingIndicator();
+
+      // Mostrar respuesta del bot
+      if (data.isAnalyzerHelp) {
+        addMessage(data.response, 'analyzer');
+      } else if (data.taskCompleted) {
+        addMessage('✓ ' + data.response, 'task-completed');
+      } else {
+        addMessage(data.response, 'bot');
+        
+        // Solo marcar como pendiente, NO abrir automáticamente
+        if (data.needsApproval) {
+          showValidationPanel();
+        }
+      }
+    }
+
+    // Permitir enviar mensaje con la tecla Enter
+    document.getElementById('input-box').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>
